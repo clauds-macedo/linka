@@ -1,0 +1,31 @@
+{
+  "rules": {
+    "rooms": {
+      "$roomId": {
+        ".read": "auth != null",
+        ".write": "auth != null && (!data.exists() || data.child('hostId').val() === auth.uid)",
+        "hostId": {
+          ".write": "auth != null && (!data.exists() || data.val() === auth.uid)"
+        },
+        "videoId": {
+          ".write": "auth != null && auth.uid === data.parent().child('hostId').val()"
+        },
+        "isPlaying": {
+          ".write": "auth != null && auth.uid === data.parent().child('hostId').val()"
+        },
+        "currentTime": {
+          ".write": "auth != null && auth.uid === data.parent().child('hostId').val()"
+        },
+        "lastUpdate": {
+          ".write": "auth != null && auth.uid === data.parent().child('hostId').val()"
+        },
+        "users": {
+          "$userId": {
+            ".read": "auth != null",
+            ".write": "auth != null && auth.uid === $userId"
+          }
+        }
+      }
+    }
+  }
+}
