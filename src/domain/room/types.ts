@@ -18,3 +18,20 @@ export type TRoomListResponse = {
   total: number;
   page: number;
 };
+
+export type TRoomUserPresence = {
+  userId: string;
+  joinedAt: number;
+};
+
+export type TRoomPlaybackState = {
+  hostId: string;
+  videoId: string;
+  isPlaying: boolean;
+  currentTime: number;
+  lastUpdate: number;
+};
+
+export type TRoomRealtimeState = TRoomPlaybackState & {
+  users: Record<string, TRoomUserPresence>;
+};

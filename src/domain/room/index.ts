@@ -1,2 +1,8 @@
 export { ERoomStatus, ERoomCategory } from './enums';
-export type { TRoom, TRoomListResponse } from './types';
+export type {
+	TRoom,
+	TRoomListResponse,
+	TRoomUserPresence,
+	TRoomPlaybackState,
+	TRoomRealtimeState,
+} from './types';
