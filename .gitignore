@@ -1,4 +1,4 @@
-CLAUDE.md# Learn more https://docs.github.com/en/get-started/getting-started-with-git/ignoring-files
+# Learn more https://docs.github.com/en/get-started/getting-started-with-git/ignoring-files
 
 # dependencies
 node_modules/
@@ -39,3 +39,12 @@ yarn-error.*
 # generated native folders
 /ios
 /android
+
+# Local data
+saimo_data/
+
+# Scripts
+*.sh
+
+# Claude settings
+.claude/settings.local.json
