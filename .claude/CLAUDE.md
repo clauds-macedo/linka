@@ -4,7 +4,28 @@
 
 ---
 
-## Goal
+## About the App
+
+**Linka** is a **watch together** mobile app that allows users to create rooms, invite friends, and watch synchronized videos in real-time.
+
+### Core Features
+- 🎬 **Synchronized Playback** - Watch YouTube, Twitch and other content together
+- 💬 **Real-time Chat** - Chat with participants while watching
+- 🚀 **Live Rooms** - Create public or private watch parties
+- 👥 **Friends System** - See who's online and what they're watching
+- 🎨 **Dark Neon UI** - Modern glassmorphism design with purple/blue gradients
+
+### Key Screens
+| Screen | Description |
+|--------|-------------|
+| Home | Room discovery, hero section, popular rooms |
+| Room | Video player, chat, participants list |
+| Create Room | Room setup with source selection |
+| Profile | User settings and friends |
+
+---
+
+## Development Goal
 
 Generate **production-ready React Native code** using TypeScript, following MVVM and Composition Pattern, implementing components from a custom design system.
 
