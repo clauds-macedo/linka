@@ -15,7 +15,8 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.linka.app"
+      "bundleIdentifier": "com.linka.app",
+      "googleServicesFile": "./GoogleService-Info.plist"
     },
     "android": {
       "adaptiveIcon": {
@@ -24,25 +25,16 @@
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
-      "package": "com.linka.app"
+      "package": "com.linka.app",
+      "googleServicesFile": "./google-services.json"
     },
     "web": {
       "favicon": "./assets/favicon.png",
       "bundler": "metro"
     },
     "plugins": [
-      "expo-router"
-    ],
-    "extra": {
-      "firebase": {
-        "apiKey": "AIzaSyB0uOwUvsKE7YYx8thBZqulCQh_j4ZFq2w",
-        "authDomain": "linka-aff75.firebaseapp.com",
-        "databaseURL": "https://linka-aff75-default-rtdb.firebaseio.com",
-        "projectId": "linka-aff75",
-        "storageBucket": "linka-aff75.firebasestorage.app",
-        "messagingSenderId": "960144132356",
-        "appId": "1:960144132356:android:55df138f717728488e2851"
-      }
-    }
+      "expo-router",
+      "@react-native-firebase/app"
+    ]
   }
 }
