@@ -9,6 +9,8 @@
     "web": "expo start --web"
   },
   "dependencies": {
+    "@casl/ability": "^6.8.0",
+    "@casl/react": "^5.0.1",
     "babel-preset-expo": "^54.0.10",
     "expo": "~54.0.32",
     "expo-constants": "~18.0.13",
