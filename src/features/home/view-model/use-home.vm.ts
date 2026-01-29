@@ -1,9 +1,15 @@
 import { useState, useEffect, useCallback } from 'react';
+import { subject } from '@casl/ability';
 import { useRouter } from 'expo-router';
 import { TRoom, ERoomStatus, ERoomCategory } from '../../../domain/room';
+import { TContent } from '../../../domain/content';
+import { useAuth } from '../../../core/auth';
+import { EAction, ESubject } from '../../../core/abilities';
+import { PremiumContentService } from '../../content';
 
 type THomeViewModelState = {
   rooms: TRoom[];
+  premiumContent: TContent[];
   isLoading: boolean;
   error: string | null;
 };
@@ -11,7 +17,9 @@ type THomeViewModelState = {
 type THomeViewModel = THomeViewModelState & {
   navigateToRoom: (roomId: string) => void;
   navigateToCreateRoom: () => void;
+  navigateToContent: (contentId: string) => void;
   refreshRooms: () => Promise<void>;
+  canAccessContent: (content: TContent) => boolean;
 };
 
 const MOCK_ROOMS: TRoom[] = [
@@ -64,8 +72,10 @@ const MOCK_ROOMS: TRoom[] = [
 
 export const useHomeViewModel = (): THomeViewModel => {
   const router = useRouter();
+  const { user, ability } = useAuth();
   const [state, setState] = useState<THomeViewModelState>({
     rooms: [],
+    premiumContent: [],
     isLoading: true,
     error: null,
   });
@@ -75,8 +85,14 @@ export const useHomeViewModel = (): THomeViewModel => {
 
     try {
       await new Promise((resolve) => setTimeout(resolve, 1000));
+      
+      // Fetch premium content based on user subscription
+      const subscriptionPlan = user?.subscription.plan;
+      const contentResponse = await PremiumContentService.getPremiumContent(subscriptionPlan);
+      
       setState({
         rooms: MOCK_ROOMS,
+        premiumContent: contentResponse.content,
         isLoading: false,
         error: null,
       });
@@ -87,7 +103,7 @@ export const useHomeViewModel = (): THomeViewModel => {
         error: 'Erro ao carregar as salas',
       }));
     }
-  }, []);
+  }, [user]);
 
   useEffect(() => {
     fetchRooms();
@@ -108,10 +124,26 @@ export const useHomeViewModel = (): THomeViewModel => {
     await fetchRooms();
   }, [fetchRooms]);
 
+  const navigateToContent = useCallback(
+    (contentId: string) => {
+      console.log('Navigate to content:', contentId);
+    },
+    []
+  );
+
+  const canAccessContent = useCallback(
+    (content: TContent) => {
+      return ability.can(EAction.VIEW, subject(ESubject.CONTENT, content));
+    },
+    [ability]
+  );
+
   return {
     ...state,
     navigateToRoom,
     navigateToCreateRoom,
+    navigateToContent,
     refreshRooms,
+    canAccessContent,
   };
 };

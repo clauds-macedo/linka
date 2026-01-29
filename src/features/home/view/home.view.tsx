@@ -4,12 +4,21 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Header } from './components/header.view';
 import { Hero } from './components/hero.view';
 import { RoomCard } from './components/room-card.view';
+import { ContentCard } from './components/content-card.view';
 import { EColors, ENeonColors, ESpacing, EFontSize, EFontWeight } from '../../../ui/tokens';
 import { useHomeViewModel } from '../view-model/use-home.vm';
 
 export const HomeView: React.FC = () => {
-  const { rooms, isLoading, navigateToRoom, navigateToCreateRoom, refreshRooms } =
-    useHomeViewModel();
+  const { 
+    rooms, 
+    premiumContent, 
+    isLoading, 
+    navigateToRoom, 
+    navigateToCreateRoom, 
+    navigateToContent,
+    refreshRooms,
+    canAccessContent,
+  } = useHomeViewModel();
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -28,6 +37,37 @@ export const HomeView: React.FC = () => {
       >
         <Header />
         <Hero onCreateRoom={navigateToCreateRoom} />
+
+        {premiumContent.length > 0 && (
+          <>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>Conteúdo Premium</Text>
+              <Text style={styles.viewAll}>Ver todos →</Text>
+            </View>
+
+            {isLoading ? (
+              <View style={styles.loadingContainer}>
+                <ActivityIndicator size="large" color={EColors.PRIMARY} />
+              </View>
+            ) : (
+              <ScrollView 
+                horizontal 
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.horizontalList}
+                style={styles.horizontalScrollView}
+              >
+                {premiumContent.map((content) => (
+                  <ContentCard 
+                    key={content.id} 
+                    content={content} 
+                    onPress={navigateToContent}
+                    showLock={!canAccessContent(content)}
+                  />
+                ))}
+              </ScrollView>
+            )}
+          </>
+        )}
 
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>Salas Populares</Text>
@@ -107,5 +147,12 @@ const styles = StyleSheet.create({
   },
   roomsList: {
     gap: ESpacing.XXL,
+  },
+  horizontalScrollView: {
+    marginBottom: ESpacing.XXXL,
+  },
+  horizontalList: {
+    gap: ESpacing.LG,
+    paddingRight: ESpacing.LG,
   },
 });
