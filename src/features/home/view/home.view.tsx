@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, ScrollView, StyleSheet, ActivityIndicator, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { Film } from 'lucide-react-native';
 import { Header } from './components/header.view';
 import { Hero } from './components/hero.view';
 import { LiveRoomCard } from './components/live-room-card.view';
@@ -108,7 +109,7 @@ export const HomeView: React.FC = () => {
         ) : rooms.length === 0 ? (
           <Card style={styles.emptyCard}>
             <View style={styles.emptyContent}>
-              <Text style={styles.emptyIcon}>🎬</Text>
+              <Film size={48} color={EColors.PRIMARY} strokeWidth={1.5} />
               <Text style={styles.emptyTitle}>Nenhuma sala ativa</Text>
               <Text style={styles.emptySubtitle}>
                 Seja o primeiro a criar uma sala e assistir com amigos!
@@ -228,9 +229,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: ESpacing.MD,
     paddingVertical: ESpacing.LG,
-  },
-  emptyIcon: {
-    fontSize: 48,
   },
   emptyTitle: {
     fontSize: EFontSize.LG,
