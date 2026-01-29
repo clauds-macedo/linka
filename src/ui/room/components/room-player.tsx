@@ -1,7 +1,11 @@
 import React, { MutableRefObject } from 'react';
-import { View, StyleSheet } from 'react-native';
+import { View, StyleSheet, Dimensions } from 'react-native';
 import YoutubeIframe, { YoutubeIframeRef } from 'react-native-youtube-iframe';
 import { EBorderRadius, EColors } from '../../tokens';
+
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
+const PLAYER_WIDTH = SCREEN_WIDTH - 32;
+const PLAYER_HEIGHT = (PLAYER_WIDTH * 9) / 16;
 
 export type TRoomPlayerProps = {
   videoId: string;
@@ -22,11 +26,15 @@ export const RoomPlayer: React.FC<TRoomPlayerProps> = ({
     <View style={styles.container}>
       <YoutubeIframe
         ref={playerRef}
-        height={220}
+        width={PLAYER_WIDTH}
+        height={PLAYER_HEIGHT}
         videoId={videoId}
         play={isPlaying}
         onChangeState={onStateChange}
         onProgress={(data) => onProgress(data.currentTime)}
+        webViewProps={{
+          androidLayerType: 'hardware',
+        }}
       />
     </View>
   );
@@ -34,9 +42,11 @@ export const RoomPlayer: React.FC<TRoomPlayerProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    borderRadius: EBorderRadius.LG,
+    borderRadius: EBorderRadius.XL,
     overflow: 'hidden',
-    borderWidth: 1,
+    borderWidth: 2,
     borderColor: EColors.BORDER,
+    backgroundColor: EColors.CARD,
+    alignSelf: 'center',
   },
 });

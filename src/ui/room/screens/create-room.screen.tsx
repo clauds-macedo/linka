@@ -1,35 +1,72 @@
-import React from 'react';
-import { ScrollView, StyleSheet, Text } from 'react-native';
+import React, { useState, useCallback } from 'react';
+import { ScrollView, StyleSheet, Text, ActivityIndicator, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useAuth } from '../../../core/auth';
 import { useI18n } from '../../../core/i18n';
-import { useCreateRoomViewModel } from '../../../domain/room/view-models/use-create-room.vm';
+import { EVideoSource } from '../../../domain/room/enums';
+import { RoomRealtimeService } from '../../../domain/room/services/room-realtime.service';
 import { RoomRoot } from '../components/room-root';
-import { RoomVideoInput } from '../components/room-video-input';
-import { Button, EButtonVariant, EButtonSize } from '../../components/button';
+import { SourceSelector } from '../components/source-selector';
+import { YouTubeBrowser } from '../components/youtube-browser';
 import { EColors, EFontSize, EFontWeight, ESpacing } from '../../tokens';
 
 type TCreateRoomScreenProps = {
   onCreated?: (roomId: string) => void;
 };
 
+type TScreenState = 'select-source' | 'youtube-browser' | 'creating';
+
 export const CreateRoomScreen: React.FC<TCreateRoomScreenProps> = ({ onCreated }) => {
   const router = useRouter();
   const { t } = useI18n();
   const { user } = useAuth();
   const userId = user?.id ?? '';
-  const viewModel = useCreateRoomViewModel(userId);
 
-  const handleCreate = async () => {
-    const roomId = await viewModel.createRoom();
-    if (!roomId) return;
-    if (onCreated) {
-      onCreated(roomId);
-      return;
+  const [screenState, setScreenState] = useState<TScreenState>('select-source');
+  const [error, setError] = useState<string | null>(null);
+
+  const handleSourceSelect = useCallback((source: EVideoSource) => {
+    if (source === EVideoSource.YOUTUBE) {
+      setScreenState('youtube-browser');
     }
-    router.push(`/room/${roomId}`);
-  };
+  }, []);
+
+  const handleVideoSelect = useCallback(
+    async (videoId: string) => {
+      try {
+        setScreenState('creating');
+        setError(null);
+
+        const roomId = await RoomRealtimeService.createRoom({
+          hostId: userId,
+          videoId,
+        });
+
+        if (!roomId) {
+          setError(t('createRoom.error'));
+          setScreenState('select-source');
+          return;
+        }
+
+        if (onCreated) {
+          onCreated(roomId);
+          return;
+        }
+
+        router.replace(`/room/${roomId}`);
+      } catch {
+        setError(t('createRoom.error'));
+        setScreenState('select-source');
+      }
+    },
+    [userId, onCreated, router, t]
+  );
+
+  const handleBack = useCallback(() => {
+    setScreenState('select-source');
+    setError(null);
+  }, []);
 
   if (!userId) {
     return (
@@ -41,29 +78,29 @@ export const CreateRoomScreen: React.FC<TCreateRoomScreenProps> = ({ onCreated }
     );
   }
 
+  if (screenState === 'youtube-browser') {
+    return <YouTubeBrowser onVideoSelect={handleVideoSelect} onBack={handleBack} />;
+  }
+
+  if (screenState === 'creating') {
+    return (
+      <SafeAreaView style={styles.safeArea}>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={EColors.PRIMARY} />
+          <Text style={styles.loadingText}>{t('createRoom.loading')}</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <RoomRoot>
           <Text style={styles.title}>{t('createRoom.title')}</Text>
-          <Text style={styles.subtitle}>{t('createRoom.subtitle')}</Text>
-          <RoomVideoInput
-            value={viewModel.videoIdInput}
-            onChange={viewModel.setVideoIdInput}
-            onSubmit={handleCreate}
-            disabled={viewModel.isLoading}
-          />
-          <Button.Root
-            variant={EButtonVariant.HERO}
-            size={EButtonSize.DEFAULT}
-            onPress={handleCreate}
-            disabled={viewModel.isLoading}
-          >
-            <Button.Text>
-              {viewModel.isLoading ? t('createRoom.loading') : t('createRoom.create')}
-            </Button.Text>
-          </Button.Root>
-          {viewModel.error ? <Text style={styles.error}>{t('createRoom.error')}</Text> : null}
+          <Text style={styles.subtitle}>{t('createRoom.selectSource')}</Text>
+          <SourceSelector onSelect={handleSourceSelect} />
+          {error ? <Text style={styles.error}>{error}</Text> : null}
         </RoomRoot>
       </ScrollView>
     </SafeAreaView>
@@ -77,6 +114,16 @@ const styles = StyleSheet.create({
   },
   content: {
     padding: ESpacing.LG,
+  },
+  loadingContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: ESpacing.MD,
+  },
+  loadingText: {
+    fontSize: EFontSize.BASE,
+    color: EColors.MUTED_FOREGROUND,
   },
   title: {
     fontSize: EFontSize.XXL,

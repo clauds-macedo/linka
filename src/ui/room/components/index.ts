@@ -4,3 +4,6 @@ export { RoomPlayer } from './room-player';
 export { RoomControls } from './room-controls';
 export { RoomParticipants } from './room-participants';
 export { RoomVideoInput } from './room-video-input';
+export { SourceSelector } from './source-selector';
+export { YouTubeBrowser } from './youtube-browser';
+export { RoomChat } from './room-chat';

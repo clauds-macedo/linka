@@ -3,21 +3,26 @@ import { View, Text, ScrollView, StyleSheet, ActivityIndicator, RefreshControl }
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Header } from './components/header.view';
 import { Hero } from './components/hero.view';
-import { RoomCard } from './components/room-card.view';
+import { LiveRoomCard } from './components/live-room-card.view';
 import { ContentCard } from './components/content-card.view';
+import { Button, EButtonSize, EButtonVariant } from '../../../ui/components/button';
+import { Card } from '../../../ui/components/card';
 import { EColors, ENeonColors, ESpacing, EFontSize, EFontWeight } from '../../../ui/tokens';
 import { useHomeViewModel } from '../view-model/use-home.vm';
 import { useI18n } from '../../../core/i18n';
 
 export const HomeView: React.FC = () => {
   const { t } = useI18n();
-  const { 
-    rooms, 
-    premiumContent, 
-    isLoading, 
-    navigateToRoom, 
-    navigateToCreateRoom, 
+  const {
+    rooms,
+    premiumContent,
+    isLoading,
+    isAuthenticated,
+    navigateToRoom,
+    navigateToCreateRoom,
     navigateToContent,
+    navigateToSignIn,
+    navigateToSignUp,
     refreshRooms,
     canAccessContent,
   } = useHomeViewModel();
@@ -40,6 +45,33 @@ export const HomeView: React.FC = () => {
         <Header />
         <Hero onCreateRoom={navigateToCreateRoom} />
 
+        {!isAuthenticated && (
+          <Card style={styles.authCard}>
+            <View style={styles.authContent}>
+              <View style={styles.authTextBlock}>
+                <Text style={styles.authTitle}>{t('home.authTitle')}</Text>
+                <Text style={styles.authSubtitle}>{t('home.authSubtitle')}</Text>
+              </View>
+              <View style={styles.authActions}>
+                <Button.Root
+                  variant={EButtonVariant.OUTLINE}
+                  size={EButtonSize.SM}
+                  onPress={navigateToSignIn}
+                >
+                  <Button.Text>{t('home.signIn')}</Button.Text>
+                </Button.Root>
+                <Button.Root
+                  variant={EButtonVariant.HERO}
+                  size={EButtonSize.SM}
+                  onPress={navigateToSignUp}
+                >
+                  <Button.Text>{t('home.signUp')}</Button.Text>
+                </Button.Root>
+              </View>
+            </View>
+          </Card>
+        )}
+
         {premiumContent.length > 0 && (
           <>
             <View style={styles.sectionHeader}>
@@ -47,43 +79,53 @@ export const HomeView: React.FC = () => {
               <Text style={styles.viewAll}>{t('home.viewAll')}</Text>
             </View>
 
-            {isLoading ? (
-              <View style={styles.loadingContainer}>
-                <ActivityIndicator size="large" color={EColors.PRIMARY} />
-              </View>
-            ) : (
-              <ScrollView 
-                horizontal 
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={styles.horizontalList}
-                style={styles.horizontalScrollView}
-              >
-                {premiumContent.map((content) => (
-                  <ContentCard 
-                    key={content.id} 
-                    content={content} 
-                    onPress={navigateToContent}
-                    showLock={!canAccessContent(content)}
-                  />
-                ))}
-              </ScrollView>
-            )}
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.horizontalList}
+              style={styles.horizontalScrollView}
+            >
+              {premiumContent.map((content) => (
+                <ContentCard
+                  key={content.id}
+                  content={content}
+                  onPress={navigateToContent}
+                  showLock={!canAccessContent(content)}
+                />
+              ))}
+            </ScrollView>
           </>
         )}
 
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>{t('home.popularRooms')}</Text>
-          <Text style={styles.viewAll}>{t('home.viewAll')}</Text>
         </View>
 
         {isLoading ? (
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color={EColors.PRIMARY} />
           </View>
+        ) : rooms.length === 0 ? (
+          <Card style={styles.emptyCard}>
+            <View style={styles.emptyContent}>
+              <Text style={styles.emptyIcon}>🎬</Text>
+              <Text style={styles.emptyTitle}>Nenhuma sala ativa</Text>
+              <Text style={styles.emptySubtitle}>
+                Seja o primeiro a criar uma sala e assistir com amigos!
+              </Text>
+              <Button.Root
+                variant={EButtonVariant.HERO}
+                size={EButtonSize.SM}
+                onPress={navigateToCreateRoom}
+              >
+                <Button.Text>Criar Sala</Button.Text>
+              </Button.Root>
+            </View>
+          </Card>
         ) : (
           <View style={styles.roomsList}>
             {rooms.map((room) => (
-              <RoomCard key={room.id} room={room} onPress={navigateToRoom} />
+              <LiveRoomCard key={room.id} room={room} onPress={navigateToRoom} />
             ))}
           </View>
         )}
@@ -132,10 +174,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: ESpacing.XXL,
+    marginBottom: ESpacing.LG,
   },
   sectionTitle: {
-    fontSize: EFontSize.XXL,
+    fontSize: EFontSize.XL,
     fontWeight: EFontWeight.SEMIBOLD,
     color: EColors.FOREGROUND,
   },
@@ -148,7 +190,29 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   roomsList: {
-    gap: ESpacing.XXL,
+    gap: ESpacing.LG,
+  },
+  authCard: {
+    marginBottom: ESpacing.XXXL,
+  },
+  authContent: {
+    gap: ESpacing.LG,
+  },
+  authTextBlock: {
+    gap: ESpacing.XS,
+  },
+  authTitle: {
+    fontSize: EFontSize.XL,
+    fontWeight: EFontWeight.SEMIBOLD,
+    color: EColors.FOREGROUND,
+  },
+  authSubtitle: {
+    fontSize: EFontSize.SM,
+    color: EColors.MUTED_FOREGROUND,
+  },
+  authActions: {
+    flexDirection: 'row',
+    gap: ESpacing.SM,
   },
   horizontalScrollView: {
     marginBottom: ESpacing.XXXL,
@@ -156,5 +220,26 @@ const styles = StyleSheet.create({
   horizontalList: {
     gap: ESpacing.LG,
     paddingRight: ESpacing.LG,
+  },
+  emptyCard: {
+    marginTop: ESpacing.MD,
+  },
+  emptyContent: {
+    alignItems: 'center',
+    gap: ESpacing.MD,
+    paddingVertical: ESpacing.LG,
+  },
+  emptyIcon: {
+    fontSize: 48,
+  },
+  emptyTitle: {
+    fontSize: EFontSize.LG,
+    fontWeight: EFontWeight.SEMIBOLD,
+    color: EColors.FOREGROUND,
+  },
+  emptySubtitle: {
+    fontSize: EFontSize.SM,
+    color: EColors.MUTED_FOREGROUND,
+    textAlign: 'center',
   },
 });
