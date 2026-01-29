@@ -35,3 +35,21 @@ export type TRoomPlaybackState = {
 export type TRoomRealtimeState = TRoomPlaybackState & {
   users: Record<string, TRoomUserPresence>;
 };
+
+export type TChatMessage = {
+  id: string;
+  roomId: string;
+  userId: string;
+  userName: string;
+  text: string;
+  timestamp: number;
+};
+
+export type TLiveRoom = {
+  id: string;
+  hostId: string;
+  videoId: string;
+  viewerCount: number;
+  isPlaying: boolean;
+  createdAt: number;
+};

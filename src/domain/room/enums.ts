@@ -11,3 +11,7 @@ export enum ERoomCategory {
   GAMING = 'gaming',
   EDUCATION = 'education',
 }
+
+export enum EVideoSource {
+  YOUTUBE = 'youtube',
+}
