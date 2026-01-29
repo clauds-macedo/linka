@@ -1,15 +1,6 @@
 import { useCallback, useState } from 'react';
 import { RoomRealtimeService } from '../services/room-realtime.service';
-
-enum ECreateRoomError {
-  INVALID_USER = 'Usuário inválido',
-  INVALID_VIDEO = 'Video inválido',
-  CREATE_FAILED = 'Erro ao criar sala',
-}
-
-enum ECreateRoomValue {
-  EMPTY = '',
-}
+import { t } from '../../../core/i18n';
 
 type TCreateRoomViewModel = {
   videoIdInput: string;
@@ -28,26 +19,26 @@ export const useCreateRoomViewModel = (hostId: string): TCreateRoomViewModel => 
     try {
       setIsLoading(true);
       if (!hostId) {
-        setError(ECreateRoomError.INVALID_USER);
-        return ECreateRoomValue.EMPTY;
+        setError(t('errors.invalidUser'));
+        return '';
       }
       if (!videoIdInput) {
-        setError(ECreateRoomError.INVALID_VIDEO);
-        return ECreateRoomValue.EMPTY;
+        setError(t('errors.invalidVideo'));
+        return '';
       }
       const roomId = await RoomRealtimeService.createRoom({
         hostId,
         videoId: videoIdInput,
       });
       if (!roomId) {
-        setError(ECreateRoomError.CREATE_FAILED);
-        return ECreateRoomValue.EMPTY;
+        setError(t('errors.createFailed'));
+        return '';
       }
       setError(null);
       return roomId;
     } catch {
-      setError(ECreateRoomError.CREATE_FAILED);
-      return ECreateRoomValue.EMPTY;
+      setError(t('errors.createFailed'));
+      return '';
     } finally {
       setIsLoading(false);
     }

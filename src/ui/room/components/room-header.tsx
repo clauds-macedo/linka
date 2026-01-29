@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { EColors, EFontSize, EFontWeight, ESpacing } from '../../tokens';
+import { useI18n } from '../../../core/i18n';
 
 type TRoomHeaderProps = {
   title: string;
@@ -8,12 +9,9 @@ type TRoomHeaderProps = {
   isHost: boolean;
 };
 
-enum ERoomRoleLabel {
-  HOST = 'Host',
-  PARTICIPANT = 'Participante',
-}
-
 export const RoomHeader: React.FC<TRoomHeaderProps> = ({ title, subtitle, isHost }) => {
+  const { t } = useI18n();
+
   return (
     <View style={styles.container}>
       <View style={styles.textBlock}>
@@ -22,7 +20,7 @@ export const RoomHeader: React.FC<TRoomHeaderProps> = ({ title, subtitle, isHost
       </View>
       <View style={[styles.badge, isHost ? styles.badgeHost : styles.badgeGuest]}>
         <Text style={styles.badgeText}>
-          {isHost ? ERoomRoleLabel.HOST : ERoomRoleLabel.PARTICIPANT}
+          {isHost ? t('room.header.host') : t('room.header.participant')}
         </Text>
       </View>
     </View>

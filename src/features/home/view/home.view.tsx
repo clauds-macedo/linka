@@ -7,8 +7,10 @@ import { RoomCard } from './components/room-card.view';
 import { ContentCard } from './components/content-card.view';
 import { EColors, ENeonColors, ESpacing, EFontSize, EFontWeight } from '../../../ui/tokens';
 import { useHomeViewModel } from '../view-model/use-home.vm';
+import { useI18n } from '../../../core/i18n';
 
 export const HomeView: React.FC = () => {
+  const { t } = useI18n();
   const { 
     rooms, 
     premiumContent, 
@@ -41,8 +43,8 @@ export const HomeView: React.FC = () => {
         {premiumContent.length > 0 && (
           <>
             <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>Conteúdo Premium</Text>
-              <Text style={styles.viewAll}>Ver todos →</Text>
+              <Text style={styles.sectionTitle}>{t('home.premiumContent')}</Text>
+              <Text style={styles.viewAll}>{t('home.viewAll')}</Text>
             </View>
 
             {isLoading ? (
@@ -70,8 +72,8 @@ export const HomeView: React.FC = () => {
         )}
 
         <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Salas Populares</Text>
-          <Text style={styles.viewAll}>Ver todas →</Text>
+          <Text style={styles.sectionTitle}>{t('home.popularRooms')}</Text>
+          <Text style={styles.viewAll}>{t('home.viewAll')}</Text>
         </View>
 
         {isLoading ? (

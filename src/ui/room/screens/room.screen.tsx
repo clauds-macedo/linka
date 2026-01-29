@@ -3,6 +3,7 @@ import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRoomViewModel } from '../../../domain/room/view-models/use-room.vm';
 import { useAuth } from '../../../core/auth';
+import { useI18n } from '../../../core/i18n';
 import { RoomControls } from '../components/room-controls';
 import { RoomHeader } from '../components/room-header';
 import { RoomParticipants } from '../components/room-participants';
@@ -11,19 +12,12 @@ import { RoomRoot } from '../components/room-root';
 import { RoomVideoInput } from '../components/room-video-input';
 import { EColors, EFontSize, EFontWeight, ESpacing } from '../../tokens';
 
-enum ERoomScreenLabel {
-  TITLE_PREFIX = 'Sala',
-  SUBTITLE = 'Sincronização em tempo real',
-  AUTH_REQUIRED = 'Faça login para entrar na sala',
-  LOADING = 'Carregando...',
-  ERROR = 'Erro ao carregar sala',
-}
-
 type TRoomScreenProps = {
   roomId: string;
 };
 
 export const RoomScreen: React.FC<TRoomScreenProps> = ({ roomId }) => {
+  const { t } = useI18n();
   const { user } = useAuth();
   const userId = user?.id ?? '';
   const viewModel = useRoomViewModel(roomId, userId);
@@ -32,7 +26,7 @@ export const RoomScreen: React.FC<TRoomScreenProps> = ({ roomId }) => {
     return (
       <SafeAreaView style={styles.safeArea}>
         <RoomRoot>
-          <Text style={styles.message}>{ERoomScreenLabel.AUTH_REQUIRED}</Text>
+          <Text style={styles.message}>{t('room.screen.authRequired')}</Text>
         </RoomRoot>
       </SafeAreaView>
     );
@@ -42,7 +36,7 @@ export const RoomScreen: React.FC<TRoomScreenProps> = ({ roomId }) => {
     return (
       <SafeAreaView style={styles.safeArea}>
         <RoomRoot>
-          <Text style={styles.message}>{ERoomScreenLabel.LOADING}</Text>
+          <Text style={styles.message}>{t('room.screen.loading')}</Text>
         </RoomRoot>
       </SafeAreaView>
     );
@@ -52,7 +46,7 @@ export const RoomScreen: React.FC<TRoomScreenProps> = ({ roomId }) => {
     return (
       <SafeAreaView style={styles.safeArea}>
         <RoomRoot>
-          <Text style={styles.message}>{ERoomScreenLabel.ERROR}</Text>
+          <Text style={styles.message}>{t('room.screen.error')}</Text>
         </RoomRoot>
       </SafeAreaView>
     );
@@ -63,8 +57,8 @@ export const RoomScreen: React.FC<TRoomScreenProps> = ({ roomId }) => {
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <RoomRoot>
           <RoomHeader
-            title={`${ERoomScreenLabel.TITLE_PREFIX} ${roomId}`}
-            subtitle={ERoomScreenLabel.SUBTITLE}
+            title={`${t('room.screen.titlePrefix')} ${roomId}`}
+            subtitle={t('room.screen.subtitle')}
             isHost={viewModel.isHost}
           />
           <RoomVideoInput

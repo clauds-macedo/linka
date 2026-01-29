@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet, Pressable, Image } from 'react-native';
 import { TContent } from '../../../../domain/content';
 import { EColors, ESpacing, EFontSize, EFontWeight, EBorderRadius } from '../../../../ui/tokens';
+import { useI18n } from '../../../../core/i18n';
 
 export type TContentCardProps = {
   content: TContent;
@@ -10,6 +11,8 @@ export type TContentCardProps = {
 };
 
 export const ContentCard: React.FC<TContentCardProps> = ({ content, onPress, showLock = false }) => {
+  const { t } = useI18n();
+
   return (
     <Pressable
       style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}
@@ -20,7 +23,7 @@ export const ContentCard: React.FC<TContentCardProps> = ({ content, onPress, sho
         {showLock && (
           <View style={styles.lockOverlay}>
             <Text style={styles.lockIcon}>🔒</Text>
-            <Text style={styles.lockText}>Premium</Text>
+            <Text style={styles.lockText}>{t('content.premiumLabel')}</Text>
           </View>
         )}
         {content.rating && (

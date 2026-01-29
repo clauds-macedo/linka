@@ -2,20 +2,19 @@ import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { Card } from '../../components/card';
 import { EColors, EFontSize, EFontWeight, ESpacing } from '../../tokens';
+import { useI18n } from '../../../core/i18n';
 
 type TRoomParticipantsProps = {
   participants: string[];
 };
 
-enum ERoomParticipantsLabel {
-  TITLE = 'Participantes',
-}
-
 export const RoomParticipants: React.FC<TRoomParticipantsProps> = ({ participants }) => {
+  const { t } = useI18n();
+
   return (
     <Card>
       <View style={styles.container}>
-        <Text style={styles.title}>{ERoomParticipantsLabel.TITLE}</Text>
+        <Text style={styles.title}>{t('room.participants.title')}</Text>
         <View style={styles.countBadge}>
           <Text style={styles.countText}>{participants.length}</Text>
         </View>
@@ -31,7 +30,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   title: {
-    fontSize: EFontSize.MD,
+    fontSize: EFontSize.BASE,
     fontWeight: EFontWeight.SEMIBOLD,
     color: EColors.FOREGROUND,
   },

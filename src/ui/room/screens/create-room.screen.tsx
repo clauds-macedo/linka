@@ -3,20 +3,12 @@ import { ScrollView, StyleSheet, Text } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useAuth } from '../../../core/auth';
+import { useI18n } from '../../../core/i18n';
 import { useCreateRoomViewModel } from '../../../domain/room/view-models/use-create-room.vm';
 import { RoomRoot } from '../components/room-root';
 import { RoomVideoInput } from '../components/room-video-input';
 import { Button, EButtonVariant, EButtonSize } from '../../components/button';
 import { EColors, EFontSize, EFontWeight, ESpacing } from '../../tokens';
-
-enum ECreateRoomLabel {
-  TITLE = 'Criar Sala',
-  SUBTITLE = 'Defina um vídeo do YouTube para sincronizar',
-  CREATE = 'Criar Sala',
-  AUTH_REQUIRED = 'Faça login para criar sala',
-  LOADING = 'Criando...',
-  ERROR = 'Erro ao criar sala',
-}
 
 type TCreateRoomScreenProps = {
   onCreated?: (roomId: string) => void;
@@ -24,6 +16,7 @@ type TCreateRoomScreenProps = {
 
 export const CreateRoomScreen: React.FC<TCreateRoomScreenProps> = ({ onCreated }) => {
   const router = useRouter();
+  const { t } = useI18n();
   const { user } = useAuth();
   const userId = user?.id ?? '';
   const viewModel = useCreateRoomViewModel(userId);
@@ -42,7 +35,7 @@ export const CreateRoomScreen: React.FC<TCreateRoomScreenProps> = ({ onCreated }
     return (
       <SafeAreaView style={styles.safeArea}>
         <RoomRoot>
-          <Text style={styles.message}>{ECreateRoomLabel.AUTH_REQUIRED}</Text>
+          <Text style={styles.message}>{t('createRoom.authRequired')}</Text>
         </RoomRoot>
       </SafeAreaView>
     );
@@ -52,8 +45,8 @@ export const CreateRoomScreen: React.FC<TCreateRoomScreenProps> = ({ onCreated }
     <SafeAreaView style={styles.safeArea}>
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <RoomRoot>
-          <Text style={styles.title}>{ECreateRoomLabel.TITLE}</Text>
-          <Text style={styles.subtitle}>{ECreateRoomLabel.SUBTITLE}</Text>
+          <Text style={styles.title}>{t('createRoom.title')}</Text>
+          <Text style={styles.subtitle}>{t('createRoom.subtitle')}</Text>
           <RoomVideoInput
             value={viewModel.videoIdInput}
             onChange={viewModel.setVideoIdInput}
@@ -67,10 +60,10 @@ export const CreateRoomScreen: React.FC<TCreateRoomScreenProps> = ({ onCreated }
             disabled={viewModel.isLoading}
           >
             <Button.Text>
-              {viewModel.isLoading ? ECreateRoomLabel.LOADING : ECreateRoomLabel.CREATE}
+              {viewModel.isLoading ? t('createRoom.loading') : t('createRoom.create')}
             </Button.Text>
           </Button.Root>
-          {viewModel.error ? <Text style={styles.error}>{ECreateRoomLabel.ERROR}</Text> : null}
+          {viewModel.error ? <Text style={styles.error}>{t('createRoom.error')}</Text> : null}
         </RoomRoot>
       </ScrollView>
     </SafeAreaView>

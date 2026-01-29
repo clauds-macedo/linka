@@ -7,10 +7,6 @@ export enum ERoomDbKey {
   USERS = 'users',
 }
 
-enum ERoomServiceValue {
-  EMPTY_ROOM_ID = '',
-}
-
 type TCreateRoomInput = {
   roomId?: string;
   hostId: string;
@@ -40,7 +36,7 @@ const getUserPath = (roomId: string, userId: string) => `${getUsersPath(roomId)}
 export class RoomRealtimeService {
   static async createRoom(input: TCreateRoomInput): Promise<string> {
     const roomId = input.roomId ?? push(ref(firebaseDatabase, ERoomDbKey.ROOMS)).key;
-    if (!roomId) return ERoomServiceValue.EMPTY_ROOM_ID;
+    if (!roomId) return '';
 
     const now = Date.now();
     const roomState: TRoomRealtimeState = {

@@ -2,6 +2,7 @@ import React from 'react';
 import { View, StyleSheet } from 'react-native';
 import { Button, EButtonVariant, EButtonSize } from '../../components/button';
 import { ESpacing } from '../../tokens';
+import { useI18n } from '../../../core/i18n';
 
 type TRoomControlsProps = {
   isHost: boolean;
@@ -12,13 +13,6 @@ type TRoomControlsProps = {
   onSeekForward: () => void;
 };
 
-enum ERoomControlLabel {
-  SEEK_BACK = '⏪ 10s',
-  SEEK_FORWARD = '10s ⏩',
-  PLAY = 'Reproduzir',
-  PAUSE = 'Pausar',
-}
-
 export const RoomControls: React.FC<TRoomControlsProps> = ({
   isHost,
   isPlaying,
@@ -27,6 +21,8 @@ export const RoomControls: React.FC<TRoomControlsProps> = ({
   onSeekBackward,
   onSeekForward,
 }) => {
+  const { t } = useI18n();
+
   return (
     <View style={styles.container}>
       <Button.Root
@@ -35,7 +31,7 @@ export const RoomControls: React.FC<TRoomControlsProps> = ({
         onPress={onSeekBackward}
         disabled={!isHost}
       >
-        <Button.Text>{ERoomControlLabel.SEEK_BACK}</Button.Text>
+        <Button.Text>{t('room.controls.seekBack')}</Button.Text>
       </Button.Root>
       {isPlaying ? (
         <Button.Root
@@ -44,7 +40,7 @@ export const RoomControls: React.FC<TRoomControlsProps> = ({
           onPress={onPause}
           disabled={!isHost}
         >
-          <Button.Text>{ERoomControlLabel.PAUSE}</Button.Text>
+          <Button.Text>{t('room.controls.pause')}</Button.Text>
         </Button.Root>
       ) : (
         <Button.Root
@@ -53,7 +49,7 @@ export const RoomControls: React.FC<TRoomControlsProps> = ({
           onPress={onPlay}
           disabled={!isHost}
         >
-          <Button.Text>{ERoomControlLabel.PLAY}</Button.Text>
+          <Button.Text>{t('room.controls.play')}</Button.Text>
         </Button.Root>
       )}
       <Button.Root
@@ -62,7 +58,7 @@ export const RoomControls: React.FC<TRoomControlsProps> = ({
         onPress={onSeekForward}
         disabled={!isHost}
       >
-        <Button.Text>{ERoomControlLabel.SEEK_FORWARD}</Button.Text>
+        <Button.Text>{t('room.controls.seekForward')}</Button.Text>
       </Button.Root>
     </View>
   );

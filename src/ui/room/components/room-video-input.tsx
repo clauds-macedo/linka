@@ -2,6 +2,7 @@ import React from 'react';
 import { View, TextInput, StyleSheet } from 'react-native';
 import { Button, EButtonVariant, EButtonSize } from '../../components/button';
 import { EBorderRadius, EColors, EFontSize, ESpacing } from '../../tokens';
+import { useI18n } from '../../../core/i18n';
 
 type TRoomVideoInputProps = {
   value: string;
@@ -10,31 +11,24 @@ type TRoomVideoInputProps = {
   disabled?: boolean;
 };
 
-enum ERoomVideoInputLabel {
-  PLACEHOLDER = 'YouTube ID',
-  BUTTON = 'Atualizar',
-}
-
-enum ETextInputAutoCapitalize {
-  NONE = 'none',
-}
-
 export const RoomVideoInput: React.FC<TRoomVideoInputProps> = ({
   value,
   onChange,
   onSubmit,
   disabled = false,
 }) => {
+  const { t } = useI18n();
+
   return (
     <View style={styles.container}>
       <TextInput
         style={styles.input}
         value={value}
         onChangeText={onChange}
-        placeholder={ERoomVideoInputLabel.PLACEHOLDER}
+        placeholder={t('room.videoInput.placeholder')}
         placeholderTextColor={EColors.MUTED_FOREGROUND}
         editable={!disabled}
-        autoCapitalize={ETextInputAutoCapitalize.NONE}
+        autoCapitalize="none"
         autoCorrect={false}
       />
       <Button.Root
@@ -43,7 +37,7 @@ export const RoomVideoInput: React.FC<TRoomVideoInputProps> = ({
         onPress={onSubmit}
         disabled={disabled}
       >
-        <Button.Text>{ERoomVideoInputLabel.BUTTON}</Button.Text>
+        <Button.Text>{t('room.videoInput.button')}</Button.Text>
       </Button.Root>
     </View>
   );

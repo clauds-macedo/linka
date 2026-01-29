@@ -2,6 +2,7 @@ import { MutableRefObject, useCallback, useEffect, useMemo, useRef, useState } f
 import { YoutubeIframeRef } from 'react-native-youtube-iframe';
 import { RoomRealtimeService } from '../services/room-realtime.service';
 import { TRoomRealtimeState } from '../types';
+import { t } from '../../../core/i18n';
 
 export enum EPlayerState {
   PLAYING = 'playing',
@@ -14,11 +15,6 @@ export enum EPlayerState {
 export enum ERoomSyncConfig {
   DRIFT_THRESHOLD = 2,
   RESYNC_INTERVAL = 5000,
-}
-
-enum ERoomError {
-  INVALID_USER = 'Usuário inválido',
-  JOIN_FAILED = 'Erro ao entrar na sala',
 }
 
 type TRoomViewModelState = {
@@ -70,13 +66,13 @@ export const useRoomViewModel = (roomId: string, userId: string): TRoomViewModel
     try {
       setIsLoading(true);
       if (!roomId || !userId) {
-        setError(ERoomError.INVALID_USER);
+        setError(t('errors.invalidUser'));
         return;
       }
       await RoomRealtimeService.joinRoom({ roomId, userId });
       setError(null);
     } catch {
-      setError(ERoomError.JOIN_FAILED);
+      setError(t('errors.joinFailed'));
     } finally {
       setIsLoading(false);
     }
