@@ -1,20 +1,7 @@
-import Constants from 'expo-constants';
-import { FirebaseApp, getApps, initializeApp } from 'firebase/app';
-import { Database, getDatabase } from 'firebase/database';
+import firebase from '@react-native-firebase/app';
+import auth from '@react-native-firebase/auth';
+import database from '@react-native-firebase/database';
 
-type TFirebaseConfig = {
-  apiKey: string;
-  authDomain: string;
-  databaseURL: string;
-  projectId: string;
-  storageBucket: string;
-  messagingSenderId: string;
-  appId: string;
-};
-
-const config = Constants.expoConfig?.extra?.firebase as TFirebaseConfig;
-
-const appInstance: FirebaseApp = getApps().length > 0 ? getApps()[0] : initializeApp(config);
-
-export const firebaseApp = appInstance;
-export const firebaseDatabase: Database = getDatabase(appInstance);
+export const firebaseApp = firebase.app;
+export const firebaseAuth = auth;
+export const firebaseDatabase = database;
