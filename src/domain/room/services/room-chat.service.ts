@@ -1,11 +1,18 @@
 import database from '@react-native-firebase/database';
-import { TChatMessage } from '../types';
+import { TChatMessage, TChatMessageType } from '../types';
 
 type TSendMessageInput = {
   roomId: string;
   userId: string;
   userName: string;
   text: string;
+};
+
+type TSendSystemMessageInput = {
+  roomId: string;
+  userId: string;
+  userName: string;
+  type: 'join' | 'leave';
 };
 
 type TChatListener = (messages: TChatMessage[]) => void;
@@ -28,6 +35,23 @@ export class RoomChatService {
       userName: input.userName,
       text: input.text,
       timestamp: Date.now(),
+      type: 'message',
+    };
+
+    await database().ref(`${getChatPath(input.roomId)}/${messageId}`).set(message);
+  }
+
+  static async sendSystemMessage(input: TSendSystemMessageInput): Promise<void> {
+    const messageId = generateMessageId();
+    const text = input.type === 'join' ? 'entrou na sala' : 'saiu da sala';
+    const message: TChatMessage = {
+      id: messageId,
+      roomId: input.roomId,
+      userId: input.userId,
+      userName: input.userName,
+      text,
+      timestamp: Date.now(),
+      type: input.type,
     };
 
     await database().ref(`${getChatPath(input.roomId)}/${messageId}`).set(message);

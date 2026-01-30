@@ -1,5 +1,6 @@
 import database from '@react-native-firebase/database';
-import { TLiveRoom, TRoomPlaybackState, TRoomRealtimeState, TRoomUserPresence } from '../types';
+import { TLiveRoom, TRoomPlaybackState, TRoomRealtimeState, TRoomUserPresence, TRoomVisibility } from '../types';
+import { RoomChatService } from './room-chat.service';
 
 export enum ERoomDbKey {
   ROOMS = 'rooms',
@@ -11,11 +12,13 @@ type TCreateRoomInput = {
   hostId: string;
   videoId: string;
   videoUrl?: string;
+  visibility?: TRoomVisibility;
 };
 
 type TJoinRoomInput = {
   roomId: string;
   userId: string;
+  userName?: string;
 };
 
 type TUpdatePlaybackInput = {
@@ -52,6 +55,7 @@ export class RoomRealtimeService {
       currentTime: 0,
       lastUpdate: now,
       createdAt: now,
+      visibility: input.visibility ?? 'public',
       users: {
         [input.hostId]: {
           userId: input.hostId,
@@ -66,13 +70,35 @@ export class RoomRealtimeService {
     return roomId;
   }
 
+  static async updateVisibility(roomId: string, visibility: TRoomVisibility): Promise<void> {
+    await database().ref(getRoomPath(roomId)).update({ visibility });
+  }
+
   static async joinRoom(input: TJoinRoomInput): Promise<void> {
     const joinedAt = Date.now();
     const presence: TPresence = { userId: input.userId, joinedAt };
     await database().ref(getUserPath(input.roomId, input.userId)).set(presence);
+
+    if (input.userName) {
+      await RoomChatService.sendSystemMessage({
+        roomId: input.roomId,
+        userId: input.userId,
+        userName: input.userName,
+        type: 'join',
+      });
+    }
   }
 
   static async leaveRoom(input: TJoinRoomInput): Promise<void> {
+    if (input.userName) {
+      await RoomChatService.sendSystemMessage({
+        roomId: input.roomId,
+        userId: input.userId,
+        userName: input.userName,
+        type: 'leave',
+      });
+    }
+
     await database().ref(getUserPath(input.roomId, input.userId)).remove();
 
     const usersSnapshot = await database().ref(getUsersPath(input.roomId)).once('value');

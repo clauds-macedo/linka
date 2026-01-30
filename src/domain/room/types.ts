@@ -24,6 +24,8 @@ export type TRoomUserPresence = {
   joinedAt: number;
 };
 
+export type TRoomVisibility = 'public' | 'friends' | 'private';
+
 export type TRoomPlaybackState = {
   hostId: string;
   videoId: string;
@@ -31,11 +33,14 @@ export type TRoomPlaybackState = {
   isPlaying: boolean;
   currentTime: number;
   lastUpdate: number;
+  visibility?: TRoomVisibility;
 };
 
 export type TRoomRealtimeState = TRoomPlaybackState & {
   users: Record<string, TRoomUserPresence>;
 };
+
+export type TChatMessageType = 'message' | 'join' | 'leave';
 
 export type TChatMessage = {
   id: string;
@@ -44,6 +49,7 @@ export type TChatMessage = {
   userName: string;
   text: string;
   timestamp: number;
+  type?: TChatMessageType;
 };
 
 export type TLiveRoom = {

@@ -29,7 +29,23 @@ type TChatMessageItemProps = {
   isOwn: boolean;
 };
 
+const SystemMessageItem: React.FC<{ message: TChatMessage }> = ({ message }) => {
+  const isJoin = message.type === 'join';
+  return (
+    <View style={styles.systemMessageContainer}>
+      <Text style={styles.systemMessageText}>
+        <Text style={styles.systemMessageUser}>{message.userName}</Text>
+        {' '}{isJoin ? 'entrou na sala' : 'saiu da sala'}
+      </Text>
+    </View>
+  );
+};
+
 const ChatMessageItem: React.FC<TChatMessageItemProps> = ({ message, isOwn }) => {
+  if (message.type === 'join' || message.type === 'leave') {
+    return <SystemMessageItem message={message} />;
+  }
+
   const time = new Date(message.timestamp).toLocaleTimeString([], {
     hour: '2-digit',
     minute: '2-digit',
@@ -393,5 +409,18 @@ const styles = StyleSheet.create({
   },
   sendButtonDisabled: {
     backgroundColor: EColors.MUTED,
+  },
+  systemMessageContainer: {
+    alignItems: 'center',
+    paddingVertical: ESpacing.XS,
+  },
+  systemMessageText: {
+    fontSize: EFontSize.XS,
+    color: EColors.MUTED_FOREGROUND,
+    textAlign: 'center',
+  },
+  systemMessageUser: {
+    fontWeight: EFontWeight.SEMIBOLD,
+    color: EColors.ACCENT,
   },
 });

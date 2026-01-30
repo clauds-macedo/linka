@@ -1,9 +1,10 @@
 import { MutableRefObject, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { YoutubeIframeRef } from 'react-native-youtube-iframe';
 import { RoomRealtimeService } from '../services/room-realtime.service';
-import { TRoomRealtimeState } from '../types';
+import { TRoomRealtimeState, TRoomVisibility } from '../types';
 import { t } from '../../../core/i18n';
 import { TStreamPlayerRef } from '../../../ui/room/components/stream-player';
+import { FriendsService } from '../../friends/services/friends.service';
 
 export enum EPlayerState {
   PLAYING = 'playing',
@@ -31,6 +32,7 @@ type TRoomViewModelState = {
   isHost: boolean;
   isLoading: boolean;
   error: string | null;
+  visibility: TRoomVisibility;
 };
 
 type TRoomViewModel = TRoomViewModelState & {
@@ -48,12 +50,14 @@ type TRoomViewModel = TRoomViewModelState & {
   videoIdInput: string;
   setVideoIdInput: (value: string) => void;
   submitVideoId: () => Promise<void>;
+  updateVisibility: (visibility: TRoomVisibility) => Promise<void>;
 };
 
-export const useRoomViewModel = (roomId: string, userId: string): TRoomViewModel => {
+export const useRoomViewModel = (roomId: string, userId: string, userName?: string): TRoomViewModel => {
   const playerRef = useRef<YoutubeIframeRef | null>(null);
   const streamPlayerRef = useRef<TStreamPlayerRef | null>(null);
   const hasSetVideoId = useRef(false);
+  const isSeekingRef = useRef(false);
   const [roomState, setRoomState] = useState<TRoomRealtimeState | null>(null);
   const [localIsPlaying, setLocalIsPlaying] = useState(false);
   const [localTime, setLocalTime] = useState(0);
@@ -82,18 +86,20 @@ export const useRoomViewModel = (roomId: string, userId: string): TRoomViewModel
         setError(t('errors.invalidUser'));
         return;
       }
-      await RoomRealtimeService.joinRoom({ roomId, userId });
+      await RoomRealtimeService.joinRoom({ roomId, userId, userName });
+      await FriendsService.updatePresence(userId, 'watching', roomId);
       setError(null);
     } catch {
       setError(t('errors.joinFailed'));
     } finally {
       setIsLoading(false);
     }
-  }, [roomId, userId]);
+  }, [roomId, userId, userName]);
 
   const leaveRoom = useCallback(async () => {
-    await RoomRealtimeService.leaveRoom({ roomId, userId });
-  }, [roomId, userId]);
+    await FriendsService.updatePresence(userId, 'online');
+    await RoomRealtimeService.leaveRoom({ roomId, userId, userName });
+  }, [roomId, userId, userName]);
 
   useEffect(() => {
     let unsubscribe = () => {};
@@ -168,14 +174,18 @@ export const useRoomViewModel = (roomId: string, userId: string): TRoomViewModel
 
   const seekTo = useCallback(
     async (time: number) => {
+      isSeekingRef.current = true;
       if (isStreamVideo) {
-        streamPlayerRef.current?.seekTo(time);
+        await streamPlayerRef.current?.seekTo(time);
       } else {
         playerRef.current?.seekTo(time, true);
       }
-      await updatePlayback({ currentTime: time });
+      await updatePlayback({ currentTime: time, isPlaying: roomState?.isPlaying ?? true });
+      setTimeout(() => {
+        isSeekingRef.current = false;
+      }, 500);
     },
-    [updatePlayback, isStreamVideo]
+    [updatePlayback, isStreamVideo, roomState?.isPlaying]
   );
 
   const seekBy = useCallback(
@@ -190,7 +200,7 @@ export const useRoomViewModel = (roomId: string, userId: string): TRoomViewModel
     (state: string) => {
       const isPlayingNow = state === EPlayerState.PLAYING;
       setLocalIsPlaying(isPlayingNow);
-      if (!isHost) return;
+      if (!isHost || isSeekingRef.current) return;
       if (state === EPlayerState.PLAYING) {
         updatePlayback({ isPlaying: true, currentTime: localTime });
       }
@@ -215,6 +225,11 @@ export const useRoomViewModel = (roomId: string, userId: string): TRoomViewModel
     }
   }, [isHost, updatePlayback, videoIdInput, isStreamVideo]);
 
+  const updateVisibility = useCallback(async (visibility: TRoomVisibility) => {
+    if (!isHost) return;
+    await RoomRealtimeService.updateVisibility(roomId, visibility);
+  }, [isHost, roomId]);
+
   return {
     roomId,
     userId,
@@ -228,6 +243,7 @@ export const useRoomViewModel = (roomId: string, userId: string): TRoomViewModel
     isHost,
     isLoading,
     error,
+    visibility: roomState?.visibility ?? 'public',
     playerRef,
     streamPlayerRef,
     isStreamVideo,
@@ -242,5 +258,6 @@ export const useRoomViewModel = (roomId: string, userId: string): TRoomViewModel
     videoIdInput,
     setVideoIdInput,
     submitVideoId,
+    updateVisibility,
   };
 };
