@@ -27,6 +27,7 @@ type TRoomViewModelState = {
   currentTime: number;
   lastUpdate: number;
   participants: string[];
+  hostId: string;
   isHost: boolean;
   isLoading: boolean;
   error: string | null;
@@ -223,6 +224,7 @@ export const useRoomViewModel = (roomId: string, userId: string): TRoomViewModel
     currentTime: roomState?.currentTime ?? 0,
     lastUpdate: roomState?.lastUpdate ?? 0,
     participants,
+    hostId: roomState?.hostId ?? '',
     isHost,
     isLoading,
     error,
