@@ -1,13 +1,15 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import {
   StyleSheet,
   Text,
   View,
   TouchableOpacity,
   StatusBar,
+  Dimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
+import * as ScreenOrientation from 'expo-screen-orientation';
 import {
   ChevronLeft,
   Radio,
@@ -26,6 +28,8 @@ import { RoomChat } from '../components/room-chat';
 import { ParticipantsList } from '../components/participants-list';
 import { FullscreenControls } from '../components/fullscreen-controls';
 import { EBorderRadius, EColors, EFontSize, EFontWeight, ESpacing } from '../../tokens';
+
+const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 type TRoomScreenProps = {
   roomId: string;
@@ -46,14 +50,30 @@ export const RoomScreen: React.FC<TRoomScreenProps> = ({ roomId }) => {
   const userId = user?.id ?? '';
   const userName = user?.name ?? 'Anônimo';
   const viewModel = useRoomViewModel(roomId, userId);
-  
+
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [visibility, setVisibility] = useState<TRoomVisibility>('public');
   const [showVisibilityMenu, setShowVisibilityMenu] = useState(false);
+  const [localTime, setLocalTime] = useState(0);
+  const [screenDimensions, setScreenDimensions] = useState({ width: SCREEN_WIDTH, height: SCREEN_HEIGHT });
 
-  const handleFullscreenEnter = useCallback(() => {
-    setIsFullscreen(true);
+  useEffect(() => {
+    const subscription = Dimensions.addEventListener('change', ({ window }) => {
+      setScreenDimensions({ width: window.width, height: window.height });
+    });
+    return () => subscription.remove();
   }, []);
+
+  useEffect(() => {
+    if (isFullscreen) {
+      ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.LANDSCAPE);
+    } else {
+      ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP);
+    }
+    return () => {
+      ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP);
+    };
+  }, [isFullscreen]);
 
   const handleFullscreenExit = useCallback(() => {
     setIsFullscreen(false);
@@ -68,7 +88,40 @@ export const RoomScreen: React.FC<TRoomScreenProps> = ({ roomId }) => {
     setShowVisibilityMenu(false);
   }, []);
 
+  const handleProgress = useCallback((time: number) => {
+    setLocalTime(time);
+    viewModel.handleProgress(time);
+  }, [viewModel.handleProgress]);
+
+  const handleSeekBy = useCallback(async (delta: number) => {
+    const currentPlayerTime = await viewModel.streamPlayerRef.current?.getCurrentTime() ?? localTime;
+    const nextTime = Math.max(0, currentPlayerTime + delta);
+    await viewModel.streamPlayerRef.current?.seekTo(nextTime);
+    if (viewModel.isHost) {
+      viewModel.seekTo(nextTime);
+    }
+  }, [localTime, viewModel]);
+
   const VisibilityIcon = VISIBILITY_CONFIG[visibility].icon;
+
+  const playerContainerStyle = useMemo(() => {
+    if (isFullscreen) {
+      return {
+        position: 'absolute' as const,
+        top: 0,
+        left: 0,
+        width: screenDimensions.width,
+        height: screenDimensions.height,
+        zIndex: 1000,
+        backgroundColor: '#000',
+      };
+    }
+    return {
+      position: 'relative' as const,
+      borderRadius: EBorderRadius.LG,
+      overflow: 'hidden' as const,
+    };
+  }, [isFullscreen, screenDimensions]);
 
   if (!userId) {
     return (
@@ -100,161 +153,145 @@ export const RoomScreen: React.FC<TRoomScreenProps> = ({ roomId }) => {
     );
   }
 
-  if (isFullscreen && viewModel.isStreamVideo) {
-    return (
-      <View style={styles.fullscreenContainer}>
-        <StatusBar hidden />
-        <StreamPlayer
-          ref={viewModel.streamPlayerRef}
-          videoUrl={viewModel.videoUrl}
-          isPlaying={viewModel.isPlaying}
-          currentTime={viewModel.currentTime}
-          onStateChange={viewModel.handlePlayerStateChange}
-          onProgress={viewModel.handleProgress}
-          onFullscreenEnter={handleFullscreenEnter}
-          onFullscreenExit={handleFullscreenExit}
-          isFullscreen
-        />
-        <FullscreenControls
-          isPlaying={viewModel.isPlaying}
-          isHost={viewModel.isHost}
-          currentTime={viewModel.currentTime}
-          onPlay={viewModel.play}
-          onPause={viewModel.pause}
-          onSeekBackward={() => viewModel.seekBy(-10)}
-          onSeekForward={() => viewModel.seekBy(10)}
-          onExitFullscreen={handleFullscreenExit}
-        />
-      </View>
-    );
-  }
-
   return (
     <View style={styles.mainContainer}>
       <StatusBar hidden={isFullscreen} />
 
-      <SafeAreaView style={styles.safeArea} edges={['top']}>
-        <View style={styles.container}>
-          <View style={styles.header}>
-            <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-              <ChevronLeft size={24} color={EColors.FOREGROUND} />
-            </TouchableOpacity>
-            
-            <View style={styles.headerInfo}>
-              <Text style={styles.roomTitle} numberOfLines={1}>
-                Sala
-              </Text>
-              <View style={styles.statusRow}>
-                <View style={styles.liveBadge}>
-                  <Radio size={10} color="#ef4444" />
-                  <Text style={styles.liveText}>AO VIVO</Text>
-                </View>
-                <ParticipantsList
-                  participants={viewModel.participants}
-                  hostId={viewModel.hostId}
-                  currentUserId={userId}
-                />
-              </View>
-            </View>
-
-            <View style={styles.headerActions}>
-              {viewModel.isHost && (
-                <View style={styles.visibilityContainer}>
-                  <TouchableOpacity
-                    style={[styles.visibilityButton, { borderColor: VISIBILITY_CONFIG[visibility].color }]}
-                    onPress={() => setShowVisibilityMenu(!showVisibilityMenu)}
-                  >
-                    <VisibilityIcon size={14} color={VISIBILITY_CONFIG[visibility].color} />
-                  </TouchableOpacity>
-                  
-                  {showVisibilityMenu && (
-                    <View style={styles.visibilityMenu}>
-                      {(Object.keys(VISIBILITY_CONFIG) as TRoomVisibility[]).map((key) => {
-                        const config = VISIBILITY_CONFIG[key];
-                        const Icon = config.icon;
-                        return (
-                          <TouchableOpacity
-                            key={key}
-                            style={[
-                              styles.visibilityOption,
-                              visibility === key && styles.visibilityOptionActive,
-                            ]}
-                            onPress={() => handleVisibilityChange(key)}
-                          >
-                            <Icon size={16} color={config.color} />
-                            <Text style={styles.visibilityOptionText}>{config.label}</Text>
-                          </TouchableOpacity>
-                        );
-                      })}
-                    </View>
-                  )}
-                </View>
-              )}
-              
-              <View style={[styles.roleBadge, viewModel.isHost ? styles.hostBadge : styles.guestBadge]}>
-                <Text style={styles.roleText}>
-                  {viewModel.isHost ? 'Host' : 'Viewer'}
-                </Text>
-              </View>
-            </View>
-          </View>
-
-          <View style={styles.playerSection}>
-            <View style={styles.playerWrapper}>
-              {viewModel.isStreamVideo ? (
-                <StreamPlayer
-                  ref={viewModel.streamPlayerRef}
-                  videoUrl={viewModel.videoUrl}
-                  isPlaying={viewModel.isPlaying}
-                  currentTime={viewModel.currentTime}
-                  onStateChange={viewModel.handlePlayerStateChange}
-                  onProgress={viewModel.handleProgress}
-                  onFullscreenEnter={handleFullscreenEnter}
-                  onFullscreenExit={handleFullscreenExit}
-                />
-              ) : (
-                <RoomPlayer
-                  videoId={viewModel.videoId}
-                  isPlaying={viewModel.isPlaying}
-                  onStateChange={viewModel.handlePlayerStateChange}
-                  onProgress={viewModel.handleProgress}
-                  playerRef={viewModel.playerRef}
-                />
-              )}
-              {viewModel.isStreamVideo && (
-                <TouchableOpacity style={styles.fullscreenToggle} onPress={toggleFullscreen}>
-                  <Maximize2 size={18} color={EColors.FOREGROUND} />
-                </TouchableOpacity>
-              )}
-            </View>
-            <RoomControls
-              isHost={viewModel.isHost}
+      {viewModel.isStreamVideo && (
+        <View style={playerContainerStyle}>
+          <StreamPlayer
+            ref={viewModel.streamPlayerRef}
+            videoUrl={viewModel.videoUrl}
+            isPlaying={viewModel.isPlaying}
+            currentTime={viewModel.currentTime}
+            onStateChange={viewModel.handlePlayerStateChange}
+            onProgress={handleProgress}
+            isFullscreen={isFullscreen}
+          />
+          {isFullscreen && (
+            <FullscreenControls
               isPlaying={viewModel.isPlaying}
+              isHost={viewModel.isHost}
+              currentTime={localTime}
               onPlay={viewModel.play}
               onPause={viewModel.pause}
-              onSeekBackward={() => viewModel.seekBy(-10)}
-              onSeekForward={() => viewModel.seekBy(10)}
+              onSeekBackward={() => handleSeekBy(-10)}
+              onSeekForward={() => handleSeekBy(10)}
+              onExitFullscreen={handleFullscreenExit}
             />
-          </View>
-
-          <View style={styles.chatSection}>
-            <RoomChat
-              roomId={roomId}
-              userId={userId}
-              userName={userName}
-            />
-          </View>
+          )}
+          {!isFullscreen && (
+            <TouchableOpacity style={styles.fullscreenToggle} onPress={toggleFullscreen}>
+              <Maximize2 size={18} color={EColors.FOREGROUND} />
+            </TouchableOpacity>
+          )}
         </View>
-      </SafeAreaView>
+      )}
+
+      {!isFullscreen && (
+        <SafeAreaView style={styles.safeArea} edges={['top']}>
+          <View style={styles.container}>
+            <View style={styles.header}>
+              <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+                <ChevronLeft size={24} color={EColors.FOREGROUND} />
+              </TouchableOpacity>
+
+              <View style={styles.headerInfo}>
+                <Text style={styles.roomTitle} numberOfLines={1}>
+                  Sala
+                </Text>
+                <View style={styles.statusRow}>
+                  <View style={styles.liveBadge}>
+                    <Radio size={10} color="#ef4444" />
+                    <Text style={styles.liveText}>AO VIVO</Text>
+                  </View>
+                  <ParticipantsList
+                    participants={viewModel.participants}
+                    hostId={viewModel.hostId}
+                    currentUserId={userId}
+                  />
+                </View>
+              </View>
+
+              <View style={styles.headerActions}>
+                {viewModel.isHost && (
+                  <View style={styles.visibilityContainer}>
+                    <TouchableOpacity
+                      style={[styles.visibilityButton, { borderColor: VISIBILITY_CONFIG[visibility].color }]}
+                      onPress={() => setShowVisibilityMenu(!showVisibilityMenu)}
+                    >
+                      <VisibilityIcon size={14} color={VISIBILITY_CONFIG[visibility].color} />
+                    </TouchableOpacity>
+
+                    {showVisibilityMenu && (
+                      <View style={styles.visibilityMenu}>
+                        {(Object.keys(VISIBILITY_CONFIG) as TRoomVisibility[]).map((key) => {
+                          const config = VISIBILITY_CONFIG[key];
+                          const Icon = config.icon;
+                          return (
+                            <TouchableOpacity
+                              key={key}
+                              style={[
+                                styles.visibilityOption,
+                                visibility === key && styles.visibilityOptionActive,
+                              ]}
+                              onPress={() => handleVisibilityChange(key)}
+                            >
+                              <Icon size={16} color={config.color} />
+                              <Text style={styles.visibilityOptionText}>{config.label}</Text>
+                            </TouchableOpacity>
+                          );
+                        })}
+                      </View>
+                    )}
+                  </View>
+                )}
+
+                <View style={[styles.roleBadge, viewModel.isHost ? styles.hostBadge : styles.guestBadge]}>
+                  <Text style={styles.roleText}>
+                    {viewModel.isHost ? 'Host' : 'Viewer'}
+                  </Text>
+                </View>
+              </View>
+            </View>
+
+            <View style={styles.playerSection}>
+              {!viewModel.isStreamVideo && (
+                <View style={styles.playerWrapper}>
+                  <RoomPlayer
+                    videoId={viewModel.videoId}
+                    isPlaying={viewModel.isPlaying}
+                    onStateChange={viewModel.handlePlayerStateChange}
+                    onProgress={viewModel.handleProgress}
+                    playerRef={viewModel.playerRef}
+                  />
+                </View>
+              )}
+              <RoomControls
+                isHost={viewModel.isHost}
+                isPlaying={viewModel.isPlaying}
+                onPlay={viewModel.play}
+                onPause={viewModel.pause}
+                onSeekBackward={() => handleSeekBy(-10)}
+                onSeekForward={() => handleSeekBy(10)}
+              />
+            </View>
+
+            <View style={styles.chatSection}>
+              <RoomChat
+                roomId={roomId}
+                userId={userId}
+                userName={userName}
+              />
+            </View>
+          </View>
+        </SafeAreaView>
+      )}
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  fullscreenContainer: {
-    flex: 1,
-    backgroundColor: '#000',
-  },
   mainContainer: {
     flex: 1,
     backgroundColor: EColors.BACKGROUND,
