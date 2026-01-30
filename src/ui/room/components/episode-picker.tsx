@@ -8,13 +8,15 @@ import {
   Image,
   Modal,
   Dimensions,
+  ImageBackground,
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { X, Play, ChevronDown } from 'lucide-react-native';
 import { TMovie, TSeriesEpisode } from '../../../domain/movie/types';
 import { EBorderRadius, EColors, EFontSize, EFontWeight, ESpacing } from '../../tokens';
 
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
+const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 type TEpisodePickerProps = {
   visible: boolean;
@@ -50,41 +52,69 @@ export const EpisodePicker: React.FC<TEpisodePickerProps> = ({
 
   if (!series) return null;
 
+  const backdropUrl = series.tmdb?.backdrop || series.tmdb?.backdropHD;
+  const posterUrl = series.tmdb?.poster || series.tmdb?.posterHD;
+
   return (
     <Modal visible={visible} animationType="slide" presentationStyle="pageSheet">
-      <SafeAreaView style={styles.container}>
-        <View style={styles.header}>
-          <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-            <X size={24} color={EColors.FOREGROUND} />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle} numberOfLines={1}>
-            {series.tmdb.title}
-          </Text>
-          <View style={styles.closeButton} />
+      <View style={styles.container}>
+        <View style={styles.heroContainer}>
+          {backdropUrl ? (
+            <ImageBackground
+              source={{ uri: backdropUrl }}
+              style={styles.heroBackdrop}
+              resizeMode="cover"
+            >
+              <LinearGradient
+                colors={['transparent', EColors.BACKGROUND]}
+                style={styles.heroGradient}
+              />
+            </ImageBackground>
+          ) : (
+            <View style={[styles.heroBackdrop, { backgroundColor: EColors.CARD }]}>
+              <LinearGradient
+                colors={['transparent', EColors.BACKGROUND]}
+                style={styles.heroGradient}
+              />
+            </View>
+          )}
+          <SafeAreaView style={styles.headerOverlay}>
+            <TouchableOpacity onPress={onClose} style={styles.closeButton}>
+              <X size={24} color={EColors.FOREGROUND} />
+            </TouchableOpacity>
+          </SafeAreaView>
+
+          <View style={styles.heroContent}>
+            {posterUrl && (
+              <Image
+                source={{ uri: posterUrl }}
+                style={styles.poster}
+                resizeMode="cover"
+              />
+            )}
+            <View style={styles.infoContent}>
+              <Text style={styles.seriesTitle}>{series.tmdb?.title || series.name}</Text>
+              {series.tmdb?.year && <Text style={styles.seriesYear}>{series.tmdb.year}</Text>}
+              {series.tmdb?.rating && (
+                <View style={styles.ratingContainer}>
+                  <Text style={styles.rating}>⭐ {series.tmdb.rating.toFixed(1)}</Text>
+                </View>
+              )}
+              {series.tmdb?.genres && series.tmdb.genres.length > 0 && (
+                <Text style={styles.genres} numberOfLines={2}>
+                  {series.tmdb.genres.slice(0, 3).join(' • ')}
+                </Text>
+              )}
+            </View>
+          </View>
         </View>
 
         <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-          <View style={styles.seriesInfo}>
-            <Image
-              source={{ uri: series.tmdb.poster }}
-              style={styles.poster}
-              resizeMode="cover"
-            />
-            <View style={styles.infoContent}>
-              <Text style={styles.seriesTitle}>{series.tmdb.title}</Text>
-              <Text style={styles.seriesYear}>{series.tmdb.year}</Text>
-              <View style={styles.ratingContainer}>
-                <Text style={styles.rating}>⭐ {series.tmdb.rating.toFixed(1)}</Text>
-              </View>
-              <Text style={styles.genres} numberOfLines={2}>
-                {series.tmdb.genres.slice(0, 3).join(' • ')}
-              </Text>
-            </View>
-          </View>
-
-          <Text style={styles.overview} numberOfLines={3}>
-            {series.tmdb.overview}
-          </Text>
+          {series.tmdb?.overview && (
+            <Text style={styles.overview} numberOfLines={3}>
+              {series.tmdb.overview}
+            </Text>
+          )}
 
           <View style={styles.seasonSelector}>
             <TouchableOpacity
@@ -124,44 +154,48 @@ export const EpisodePicker: React.FC<TEpisodePickerProps> = ({
           </View>
 
           <View style={styles.episodesList}>
-            {episodes.map((episode) => (
-              <TouchableOpacity
-                key={episode.id}
-                style={styles.episodeCard}
-                onPress={() => onEpisodeSelect(episode, series)}
-              >
-                <View style={styles.episodeThumbnail}>
-                  {episode.logo ? (
-                    <Image
-                      source={{ uri: episode.logo }}
-                      style={styles.episodeImage}
-                      resizeMode="cover"
-                    />
-                  ) : (
-                    <View style={styles.episodePlaceholder}>
-                      <Play size={24} color={EColors.PRIMARY} />
+            {episodes.map((episode) => {
+              const episodeThumbnail = episode.logo || series.tmdb?.backdrop || series.tmdb?.poster;
+              
+              return (
+                <TouchableOpacity
+                  key={episode.id}
+                  style={styles.episodeCard}
+                  onPress={() => onEpisodeSelect(episode, series)}
+                >
+                  <View style={styles.episodeThumbnail}>
+                    {episodeThumbnail ? (
+                      <Image
+                        source={{ uri: episodeThumbnail }}
+                        style={styles.episodeImage}
+                        resizeMode="cover"
+                      />
+                    ) : (
+                      <View style={styles.episodePlaceholder}>
+                        <Play size={24} color={EColors.PRIMARY} />
+                      </View>
+                    )}
+                    <View style={styles.episodeNumber}>
+                      <Text style={styles.episodeNumberText}>{episode.episode}</Text>
                     </View>
-                  )}
-                  <View style={styles.episodeNumber}>
-                    <Text style={styles.episodeNumberText}>{episode.episode}</Text>
                   </View>
-                </View>
-                <View style={styles.episodeInfo}>
-                  <Text style={styles.episodeTitle} numberOfLines={2}>
-                    {episode.name || `Episódio ${episode.episode}`}
-                  </Text>
-                  <Text style={styles.episodeSubtitle}>
-                    T{selectedSeason} E{episode.episode}
-                  </Text>
-                </View>
-                <View style={styles.playButton}>
-                  <Play size={20} color={EColors.PRIMARY} fill={EColors.PRIMARY} />
-                </View>
-              </TouchableOpacity>
-            ))}
+                  <View style={styles.episodeInfo}>
+                    <Text style={styles.episodeTitle} numberOfLines={2}>
+                      {episode.name || `Episódio ${episode.episode}`}
+                    </Text>
+                    <Text style={styles.episodeSubtitle}>
+                      T{selectedSeason} E{episode.episode}
+                    </Text>
+                  </View>
+                  <View style={styles.playButton}>
+                    <Play size={20} color={EColors.PRIMARY} fill={EColors.PRIMARY} />
+                  </View>
+                </TouchableOpacity>
+              );
+            })}
           </View>
         </ScrollView>
-      </SafeAreaView>
+      </View>
     </Modal>
   );
 };
@@ -171,51 +205,62 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: EColors.BACKGROUND,
   },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: ESpacing.MD,
-    paddingVertical: ESpacing.SM,
-    borderBottomWidth: 1,
-    borderBottomColor: EColors.BORDER,
+  heroContainer: {
+    height: SCREEN_HEIGHT * 0.35,
+    position: 'relative',
+  },
+  heroBackdrop: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  heroGradient: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: 150,
+  },
+  headerOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 10,
   },
   closeButton: {
-    width: 40,
-    height: 40,
+    width: 44,
+    height: 44,
     alignItems: 'center',
     justifyContent: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    borderRadius: 22,
+    margin: ESpacing.MD,
   },
-  headerTitle: {
-    flex: 1,
-    fontSize: EFontSize.LG,
-    fontWeight: EFontWeight.SEMIBOLD,
-    color: EColors.FOREGROUND,
-    textAlign: 'center',
-  },
-  content: {
-    flex: 1,
-    padding: ESpacing.LG,
-  },
-  seriesInfo: {
+  heroContent: {
+    position: 'absolute',
+    bottom: ESpacing.LG,
+    left: ESpacing.LG,
+    right: ESpacing.LG,
     flexDirection: 'row',
-    gap: ESpacing.LG,
-    marginBottom: ESpacing.LG,
+    gap: ESpacing.MD,
   },
   poster: {
-    width: 100,
-    height: 150,
+    width: 90,
+    height: 135,
     borderRadius: EBorderRadius.MD,
     backgroundColor: EColors.CARD,
   },
   infoContent: {
     flex: 1,
+    justifyContent: 'flex-end',
     gap: ESpacing.XS,
   },
   seriesTitle: {
     fontSize: EFontSize.XL,
     fontWeight: EFontWeight.BOLD,
     color: EColors.FOREGROUND,
+    textShadowColor: 'rgba(0, 0, 0, 0.8)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 3,
   },
   seriesYear: {
     fontSize: EFontSize.SM,
@@ -233,11 +278,15 @@ const styles = StyleSheet.create({
     fontSize: EFontSize.XS,
     color: EColors.MUTED_FOREGROUND,
   },
+  content: {
+    flex: 1,
+    padding: ESpacing.LG,
+  },
   overview: {
     fontSize: EFontSize.SM,
     color: EColors.MUTED_FOREGROUND,
     lineHeight: 20,
-    marginBottom: ESpacing.XL,
+    marginBottom: ESpacing.LG,
   },
   seasonSelector: {
     marginBottom: ESpacing.LG,

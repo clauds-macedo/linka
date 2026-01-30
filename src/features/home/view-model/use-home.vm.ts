@@ -1,13 +1,9 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { subject } from '@casl/ability';
 import { useRouter } from 'expo-router';
 import { TLiveRoom } from '../../../domain/room/types';
 import { RoomRealtimeService } from '../../../domain/room/services/room-realtime.service';
-import { TContent } from '../../../domain/content';
 import { TMovie, TSeriesEpisode, MovieService } from '../../../domain/movie';
 import { useAuth } from '../../../core/auth';
-import { EAction, ESubject } from '../../../core/abilities';
-import { PremiumContentService } from '../../content';
 import { useI18n } from '../../../core/i18n';
 
 type TMovieSection = {
@@ -19,7 +15,6 @@ type TMovieSection = {
 
 type THomeViewModelState = {
   rooms: TLiveRoom[];
-  premiumContent: TContent[];
   isLoading: boolean;
   error: string | null;
 };
@@ -32,23 +27,20 @@ type THomeViewModel = THomeViewModelState & {
   selectedSeries: TMovie | null;
   navigateToRoom: (roomId: string) => void;
   navigateToCreateRoom: () => void;
-  navigateToContent: (contentId: string) => void;
   navigateToMovie: (movie: TMovie) => void;
   navigateToSignIn: () => void;
   navigateToSignUp: () => void;
   refreshRooms: () => Promise<void>;
-  canAccessContent: (content: TContent) => boolean;
   closeEpisodePicker: () => void;
   onEpisodeSelect: (episode: TSeriesEpisode, series: TMovie) => void;
 };
 
 export const useHomeViewModel = (): THomeViewModel => {
   const router = useRouter();
-  const { user, ability, isAuthenticated } = useAuth();
+  const { user, isAuthenticated } = useAuth();
   const { t } = useI18n();
   const [state, setState] = useState<THomeViewModelState>({
     rooms: [],
-    premiumContent: [],
     isLoading: true,
     error: null,
   });
@@ -66,26 +58,6 @@ export const useHomeViewModel = (): THomeViewModel => {
 
     return () => unsubscribe();
   }, []);
-
-  useEffect(() => {
-    const fetchContent = async () => {
-      try {
-        const subscriptionPlan = user?.subscription.plan;
-        const contentResponse = await PremiumContentService.getPremiumContent(subscriptionPlan);
-        setState((prev) => ({
-          ...prev,
-          premiumContent: contentResponse.content,
-        }));
-      } catch {
-        setState((prev) => ({
-          ...prev,
-          error: t('home.loadError'),
-        }));
-      }
-    };
-
-    fetchContent();
-  }, [user, t]);
 
   const navigateToRoom = useCallback(
     (roomId: string) => {
@@ -110,10 +82,6 @@ export const useHomeViewModel = (): THomeViewModel => {
     setState((prev) => ({ ...prev, isLoading: true }));
     await new Promise((resolve) => setTimeout(resolve, 500));
     setState((prev) => ({ ...prev, isLoading: false }));
-  }, []);
-
-  const navigateToContent = useCallback((contentId: string) => {
-    void contentId;
   }, []);
 
   const createRoomWithVideo = useCallback(
@@ -175,25 +143,20 @@ export const useHomeViewModel = (): THomeViewModel => {
   );
 
   const featuredMovies = useMemo(() => {
-    return MovieService.getFeaturedMovies(10);
+    return MovieService.getMoviesByCategory('acao', 10).movies.filter(
+      (m) => m.tmdb?.rating && m.tmdb.rating >= 7
+    );
   }, []);
 
   const movieSections = useMemo(() => {
-    const categories = MovieService.getCategories();
+    const categories = MovieService.getCategories().slice(0, 3);
     return categories.map((cat) => ({
       id: cat.id,
       label: cat.label,
       icon: cat.icon,
-      movies: MovieService.getMoviesByCategory(cat.id, 15).movies,
+      movies: MovieService.getMoviesByCategory(cat.id, 10).movies,
     }));
   }, []);
-
-  const canAccessContent = useCallback(
-    (content: TContent) => {
-      return ability.can(EAction.VIEW, subject(ESubject.CONTENT, content));
-    },
-    [ability]
-  );
 
   return {
     ...state,
@@ -204,12 +167,10 @@ export const useHomeViewModel = (): THomeViewModel => {
     selectedSeries,
     navigateToRoom,
     navigateToCreateRoom,
-    navigateToContent,
     navigateToMovie,
     navigateToSignIn,
     navigateToSignUp,
     refreshRooms,
-    canAccessContent,
     closeEpisodePicker,
     onEpisodeSelect,
   };

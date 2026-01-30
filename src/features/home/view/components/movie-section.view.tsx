@@ -1,5 +1,5 @@
-import React from 'react';
-import { View, Text, StyleSheet, ScrollView, Pressable } from 'react-native';
+import React, { memo, useCallback } from 'react';
+import { View, Text, StyleSheet, FlatList, Pressable, ListRenderItemInfo } from 'react-native';
 import { ChevronRight } from 'lucide-react-native';
 import { TMovie } from '../../../../domain/movie';
 import { EColors, ESpacing, EFontSize, EFontWeight } from '../../../../ui/tokens';
@@ -14,7 +14,7 @@ export type TMovieSectionProps = {
   cardSize?: 'default' | 'large';
 };
 
-export const MovieSection: React.FC<TMovieSectionProps> = ({
+const MovieSectionComponent: React.FC<TMovieSectionProps> = ({
   title,
   icon,
   movies,
@@ -22,6 +22,15 @@ export const MovieSection: React.FC<TMovieSectionProps> = ({
   onSeeAllPress,
   cardSize = 'default',
 }) => {
+  const renderMovie = useCallback(
+    ({ item }: ListRenderItemInfo<TMovie>) => (
+      <MovieCard movie={item} onPress={onMoviePress} size={cardSize} />
+    ),
+    [onMoviePress, cardSize]
+  );
+
+  const keyExtractor = useCallback((item: TMovie) => item.id, []);
+
   if (movies.length === 0) return null;
 
   return (
@@ -39,23 +48,23 @@ export const MovieSection: React.FC<TMovieSectionProps> = ({
         )}
       </View>
 
-      <ScrollView
+      <FlatList
         horizontal
+        data={movies}
+        renderItem={renderMovie}
+        keyExtractor={keyExtractor}
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
-      >
-        {movies.map((movie) => (
-          <MovieCard
-            key={movie.id}
-            movie={movie}
-            onPress={onMoviePress}
-            size={cardSize}
-          />
-        ))}
-      </ScrollView>
+        initialNumToRender={4}
+        maxToRenderPerBatch={3}
+        windowSize={5}
+        removeClippedSubviews
+      />
     </View>
   );
 };
+
+export const MovieSection = memo(MovieSectionComponent);
 
 const styles = StyleSheet.create({
   container: {

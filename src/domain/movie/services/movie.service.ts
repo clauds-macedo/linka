@@ -14,42 +14,63 @@ export type TStreamingService = {
   loader: () => TMovie[];
 };
 
+const datasetCache = new Map<string, TMovie[]>();
+
 const loadJson = (path: string): TMovie[] => {
+  const cached = datasetCache.get(path);
+  if (cached) return cached;
+
   try {
+    let data: TMovie[] = [];
     switch (path) {
       case 'acao':
-        return require('../../../../saimo_data/acao.json') as TMovie[];
+        data = require('../../../../saimo_data/acao.json') as TMovie[];
+        break;
       case 'comedia':
-        return require('../../../../saimo_data/comedia.json') as TMovie[];
+        data = require('../../../../saimo_data/comedia.json') as TMovie[];
+        break;
       case 'drama':
-        return require('../../../../saimo_data/drama.json') as TMovie[];
+        data = require('../../../../saimo_data/drama.json') as TMovie[];
+        break;
       case 'terror':
-        return require('../../../../saimo_data/terror.json') as TMovie[];
+        data = require('../../../../saimo_data/terror.json') as TMovie[];
+        break;
       case 'romance':
-        return require('../../../../saimo_data/romance.json') as TMovie[];
+        data = require('../../../../saimo_data/romance.json') as TMovie[];
+        break;
       case 'crunchyroll':
-        return require('../../../../saimo_data/crunchyroll.json') as TMovie[];
+        data = require('../../../../saimo_data/crunchyroll.json') as TMovie[];
+        break;
       case 'suspense':
-        return require('../../../../saimo_data/suspense.json') as TMovie[];
+        data = require('../../../../saimo_data/suspense.json') as TMovie[];
+        break;
       case 'fantasia':
-        return require('../../../../saimo_data/fantasia.json') as TMovie[];
+        data = require('../../../../saimo_data/fantasia.json') as TMovie[];
+        break;
       case 'netflix':
-        return require('../../../../saimo_data/netflix.json') as TMovie[];
+        data = require('../../../../saimo_data/netflix.json') as TMovie[];
+        break;
       case 'prime-video':
-        return require('../../../../saimo_data/prime-video.json') as TMovie[];
+        data = require('../../../../saimo_data/prime-video.json') as TMovie[];
+        break;
       case 'disney':
-        return require('../../../../saimo_data/disney.json') as TMovie[];
+        data = require('../../../../saimo_data/disney.json') as TMovie[];
+        break;
       case 'max':
-        return require('../../../../saimo_data/max.json') as TMovie[];
+        data = require('../../../../saimo_data/max.json') as TMovie[];
+        break;
       case 'apple-tv':
-        return require('../../../../saimo_data/apple-tv.json') as TMovie[];
+        data = require('../../../../saimo_data/apple-tv.json') as TMovie[];
+        break;
       case 'paramount':
-        return require('../../../../saimo_data/paramount.json') as TMovie[];
+        data = require('../../../../saimo_data/paramount.json') as TMovie[];
+        break;
       case 'globoplay':
-        return require('../../../../saimo_data/globoplay.json') as TMovie[];
-      default:
-        return [];
+        data = require('../../../../saimo_data/globoplay.json') as TMovie[];
+        break;
     }
+    datasetCache.set(path, data);
+    return data;
   } catch {
     return [];
   }

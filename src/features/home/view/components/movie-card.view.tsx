@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { memo, useCallback } from 'react';
 import { View, Text, StyleSheet, Pressable, Image } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Star } from 'lucide-react-native';
@@ -11,7 +11,8 @@ export type TMovieCardProps = {
   size?: 'default' | 'large';
 };
 
-export const MovieCard: React.FC<TMovieCardProps> = ({ movie, onPress, size = 'default' }) => {
+const MovieCardComponent: React.FC<TMovieCardProps> = ({ movie, onPress, size = 'default' }) => {
+  const handlePress = useCallback(() => onPress(movie), [movie, onPress]);
   const isLarge = size === 'large';
   const cardWidth = isLarge ? 200 : 140;
   const imageHeight = isLarge ? 280 : 200;
@@ -23,7 +24,7 @@ export const MovieCard: React.FC<TMovieCardProps> = ({ movie, onPress, size = 'd
         { width: cardWidth },
         pressed && styles.cardPressed,
       ]}
-      onPress={() => onPress(movie)}
+      onPress={handlePress}
     >
       <View style={[styles.imageContainer, { height: imageHeight }]}>
         <Image
@@ -68,6 +69,8 @@ export const MovieCard: React.FC<TMovieCardProps> = ({ movie, onPress, size = 'd
     </Pressable>
   );
 };
+
+export const MovieCard = memo(MovieCardComponent);
 
 const styles = StyleSheet.create({
   card: {
