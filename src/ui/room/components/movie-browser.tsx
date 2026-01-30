@@ -11,8 +11,9 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ArrowLeft, Search, Star, X } from 'lucide-react-native';
-import { TMovie, MovieService } from '../../../domain/movie';
+import { TMovie, TSeriesEpisode, MovieService } from '../../../domain/movie';
 import { EVideoSource } from '../../../domain/room/enums';
+import { EpisodePicker } from './episode-picker';
 import { EBorderRadius, EColors, EFontSize, EFontWeight, ESpacing } from '../../tokens';
 
 type TMovieBrowserProps = {
@@ -52,6 +53,8 @@ export const MovieBrowser: React.FC<TMovieBrowserProps> = ({
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [isLoading] = useState(false);
+  const [selectedSeries, setSelectedSeries] = useState<TMovie | null>(null);
+  const [showEpisodePicker, setShowEpisodePicker] = useState(false);
 
   const streamingId = sourceToStreamingId[source] ?? 'all';
   const sourceLabel = sourceLabels[source] ?? 'Filmes';
@@ -76,11 +79,37 @@ export const MovieBrowser: React.FC<TMovieBrowserProps> = ({
     setSearchQuery('');
   }, []);
 
+  const handleMoviePress = useCallback((movie: TMovie) => {
+    if (movie.type === 'series' && movie.episodes) {
+      setSelectedSeries(movie);
+      setShowEpisodePicker(true);
+    } else {
+      onMovieSelect(movie);
+    }
+  }, [onMovieSelect]);
+
+  const handleEpisodeSelect = useCallback((episode: TSeriesEpisode, series: TMovie) => {
+    setShowEpisodePicker(false);
+    setSelectedSeries(null);
+    const episodeMovie: TMovie = {
+      ...series,
+      url: episode.url,
+      id: episode.id,
+      name: episode.name || `${series.name} - T${Object.keys(series.episodes || {}).find(s => series.episodes?.[s]?.some(e => e.id === episode.id))} E${episode.episode}`,
+    };
+    onMovieSelect(episodeMovie);
+  }, [onMovieSelect]);
+
+  const handleCloseEpisodePicker = useCallback(() => {
+    setShowEpisodePicker(false);
+    setSelectedSeries(null);
+  }, []);
+
   const renderMovie = useCallback(
     ({ item }: { item: TMovie }) => (
       <TouchableOpacity
         style={styles.movieCard}
-        onPress={() => onMovieSelect(item)}
+        onPress={() => handleMoviePress(item)}
         activeOpacity={0.7}
       >
         <Image
@@ -109,7 +138,7 @@ export const MovieBrowser: React.FC<TMovieBrowserProps> = ({
         </View>
       </TouchableOpacity>
     ),
-    [onMovieSelect]
+    [handleMoviePress]
   );
 
   const keyExtractor = useCallback((item: TMovie) => item.id, []);
@@ -168,6 +197,13 @@ export const MovieBrowser: React.FC<TMovieBrowserProps> = ({
           }
         />
       )}
+
+      <EpisodePicker
+        visible={showEpisodePicker}
+        series={selectedSeries}
+        onClose={handleCloseEpisodePicker}
+        onEpisodeSelect={handleEpisodeSelect}
+      />
     </SafeAreaView>
   );
 };

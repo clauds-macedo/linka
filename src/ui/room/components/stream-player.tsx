@@ -16,6 +16,7 @@ export type TStreamPlayerProps = {
   onProgress: (time: number) => void;
   onFullscreenEnter?: () => void;
   onFullscreenExit?: () => void;
+  isFullscreen?: boolean;
 };
 
 export type TStreamPlayerRef = {
@@ -26,7 +27,7 @@ export type TStreamPlayerRef = {
 };
 
 export const StreamPlayer = React.forwardRef<TStreamPlayerRef, TStreamPlayerProps>(
-  ({ videoUrl, isPlaying, currentTime, onStateChange, onProgress, onFullscreenEnter, onFullscreenExit }, ref) => {
+  ({ videoUrl, isPlaying, currentTime, onStateChange, onProgress, onFullscreenEnter, onFullscreenExit, isFullscreen }, ref) => {
     const lastReportedTime = useRef(0);
     const videoViewRef = useRef<VideoView>(null);
     
@@ -103,7 +104,7 @@ export const StreamPlayer = React.forwardRef<TStreamPlayerRef, TStreamPlayerProp
     }, [onFullscreenExit]);
 
     return (
-      <View style={styles.container}>
+      <View style={isFullscreen ? styles.fullscreenContainer : styles.container}>
         <VideoView
           ref={videoViewRef}
           player={player}
@@ -131,6 +132,10 @@ const styles = StyleSheet.create({
     borderColor: EColors.BORDER,
     backgroundColor: EColors.CARD,
     alignSelf: 'center',
+  },
+  fullscreenContainer: {
+    flex: 1,
+    backgroundColor: '#000',
   },
   video: {
     flex: 1,

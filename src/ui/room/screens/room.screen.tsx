@@ -24,6 +24,7 @@ import { RoomPlayer } from '../components/room-player';
 import { StreamPlayer } from '../components/stream-player';
 import { RoomChat } from '../components/room-chat';
 import { ParticipantsList } from '../components/participants-list';
+import { FullscreenControls } from '../components/fullscreen-controls';
 import { EBorderRadius, EColors, EFontSize, EFontWeight, ESpacing } from '../../tokens';
 
 type TRoomScreenProps = {
@@ -59,12 +60,8 @@ export const RoomScreen: React.FC<TRoomScreenProps> = ({ roomId }) => {
   }, []);
 
   const toggleFullscreen = useCallback(() => {
-    if (isFullscreen) {
-      viewModel.streamPlayerRef?.current?.exitFullscreen();
-    } else {
-      viewModel.streamPlayerRef?.current?.enterFullscreen();
-    }
-  }, [isFullscreen, viewModel.streamPlayerRef]);
+    setIsFullscreen((prev) => !prev);
+  }, []);
 
   const handleVisibilityChange = useCallback((newVisibility: TRoomVisibility) => {
     setVisibility(newVisibility);
@@ -103,10 +100,39 @@ export const RoomScreen: React.FC<TRoomScreenProps> = ({ roomId }) => {
     );
   }
 
+  if (isFullscreen && viewModel.isStreamVideo) {
+    return (
+      <View style={styles.fullscreenContainer}>
+        <StatusBar hidden />
+        <StreamPlayer
+          ref={viewModel.streamPlayerRef}
+          videoUrl={viewModel.videoUrl}
+          isPlaying={viewModel.isPlaying}
+          currentTime={viewModel.currentTime}
+          onStateChange={viewModel.handlePlayerStateChange}
+          onProgress={viewModel.handleProgress}
+          onFullscreenEnter={handleFullscreenEnter}
+          onFullscreenExit={handleFullscreenExit}
+          isFullscreen
+        />
+        <FullscreenControls
+          isPlaying={viewModel.isPlaying}
+          isHost={viewModel.isHost}
+          currentTime={viewModel.currentTime}
+          onPlay={viewModel.play}
+          onPause={viewModel.pause}
+          onSeekBackward={() => viewModel.seekBy(-10)}
+          onSeekForward={() => viewModel.seekBy(10)}
+          onExitFullscreen={handleFullscreenExit}
+        />
+      </View>
+    );
+  }
+
   return (
     <View style={styles.mainContainer}>
       <StatusBar hidden={isFullscreen} />
-      
+
       <SafeAreaView style={styles.safeArea} edges={['top']}>
         <View style={styles.container}>
           <View style={styles.header}>
@@ -225,6 +251,10 @@ export const RoomScreen: React.FC<TRoomScreenProps> = ({ roomId }) => {
 };
 
 const styles = StyleSheet.create({
+  fullscreenContainer: {
+    flex: 1,
+    backgroundColor: '#000',
+  },
   mainContainer: {
     flex: 1,
     backgroundColor: EColors.BACKGROUND,
