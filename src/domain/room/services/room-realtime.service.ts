@@ -10,6 +10,7 @@ type TCreateRoomInput = {
   roomId?: string;
   hostId: string;
   videoId: string;
+  videoUrl?: string;
 };
 
 type TJoinRoomInput = {
@@ -43,9 +44,10 @@ export class RoomRealtimeService {
     const roomId = input.roomId ?? generateRoomId();
 
     const now = Date.now();
-    const roomState: TRoomRealtimeState & { createdAt: number } = {
+    const roomState: TRoomRealtimeState & { createdAt: number; videoUrl?: string } = {
       hostId: input.hostId,
       videoId: input.videoId,
+      videoUrl: input.videoUrl,
       isPlaying: false,
       currentTime: 0,
       lastUpdate: now,

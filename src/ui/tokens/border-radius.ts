@@ -1,4 +1,5 @@
 export const EBorderRadius = {
+  XS: 4,
   SM: 6,
   MD: 8,
   LG: 12,

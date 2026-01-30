@@ -14,4 +14,14 @@ export enum ERoomCategory {
 
 export enum EVideoSource {
   YOUTUBE = 'youtube',
+  TWITCH = 'twitch',
+  NETFLIX = 'netflix',
+  PRIME_VIDEO = 'prime-video',
+  DISNEY = 'disney',
+  MAX = 'max',
+  APPLE_TV = 'apple-tv',
+  PARAMOUNT = 'paramount',
+  GLOBOPLAY = 'globoplay',
+  CRUNCHYROLL = 'crunchyroll',
+  LINKA = 'linka',
 }

@@ -1,13 +1,16 @@
 import React from 'react';
-import { View, Text, ScrollView, StyleSheet, ActivityIndicator, RefreshControl } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, ActivityIndicator, RefreshControl, Modal } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Film } from 'lucide-react-native';
 import { Header } from './components/header.view';
 import { Hero } from './components/hero.view';
 import { LiveRoomCard } from './components/live-room-card.view';
 import { ContentCard } from './components/content-card.view';
+import { OfflineContentBrowser } from './components/offline-content-browser.view';
+import { MovieSection } from './components/movie-section.view';
 import { Button, EButtonSize, EButtonVariant } from '../../../ui/components/button';
 import { Card } from '../../../ui/components/card';
+import { EpisodePicker } from '../../../ui/room/components/episode-picker';
 import { EColors, ENeonColors, ESpacing, EFontSize, EFontWeight } from '../../../ui/tokens';
 import { useHomeViewModel } from '../view-model/use-home.vm';
 import { useI18n } from '../../../core/i18n';
@@ -17,11 +20,15 @@ export const HomeView: React.FC = () => {
   const {
     rooms,
     premiumContent,
+    featuredMovies,
+    movieSections,
     isLoading,
+    isCreatingRoom,
     isAuthenticated,
     navigateToRoom,
     navigateToCreateRoom,
     navigateToContent,
+    navigateToMovie,
     navigateToSignIn,
     navigateToSignUp,
     refreshRooms,
@@ -30,6 +37,15 @@ export const HomeView: React.FC = () => {
 
   return (
     <SafeAreaView style={styles.safeArea}>
+      <Modal visible={isCreatingRoom} transparent animationType="fade">
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <ActivityIndicator size="large" color={EColors.PRIMARY} />
+            <Text style={styles.modalText}>Criando sala...</Text>
+          </View>
+        </View>
+      </Modal>
+
       <View style={styles.backgroundEffects}>
         <View style={styles.purpleBlob} />
         <View style={styles.blueBlob} />
@@ -43,38 +59,44 @@ export const HomeView: React.FC = () => {
           <RefreshControl refreshing={isLoading} onRefresh={refreshRooms} tintColor={EColors.PRIMARY} />
         }
       >
-        <Header />
-        <Hero onCreateRoom={navigateToCreateRoom} />
+        <View style={styles.paddedContent}>
+          <Header />
+          <Hero onCreateRoom={navigateToCreateRoom} />
+        </View>
+
+        <OfflineContentBrowser />
 
         {!isAuthenticated && (
-          <Card style={styles.authCard}>
-            <View style={styles.authContent}>
-              <View style={styles.authTextBlock}>
-                <Text style={styles.authTitle}>{t('home.authTitle')}</Text>
-                <Text style={styles.authSubtitle}>{t('home.authSubtitle')}</Text>
+          <View style={styles.paddedContent}>
+            <Card style={styles.authCard}>
+              <View style={styles.authContent}>
+                <View style={styles.authTextBlock}>
+                  <Text style={styles.authTitle}>{t('home.authTitle')}</Text>
+                  <Text style={styles.authSubtitle}>{t('home.authSubtitle')}</Text>
+                </View>
+                <View style={styles.authActions}>
+                  <Button.Root
+                    variant={EButtonVariant.OUTLINE}
+                    size={EButtonSize.SM}
+                    onPress={navigateToSignIn}
+                  >
+                    <Button.Text>{t('home.signIn')}</Button.Text>
+                  </Button.Root>
+                  <Button.Root
+                    variant={EButtonVariant.HERO}
+                    size={EButtonSize.SM}
+                    onPress={navigateToSignUp}
+                  >
+                    <Button.Text>{t('home.signUp')}</Button.Text>
+                  </Button.Root>
+                </View>
               </View>
-              <View style={styles.authActions}>
-                <Button.Root
-                  variant={EButtonVariant.OUTLINE}
-                  size={EButtonSize.SM}
-                  onPress={navigateToSignIn}
-                >
-                  <Button.Text>{t('home.signIn')}</Button.Text>
-                </Button.Root>
-                <Button.Root
-                  variant={EButtonVariant.HERO}
-                  size={EButtonSize.SM}
-                  onPress={navigateToSignUp}
-                >
-                  <Button.Text>{t('home.signUp')}</Button.Text>
-                </Button.Root>
-              </View>
-            </View>
-          </Card>
+            </Card>
+          </View>
         )}
 
         {premiumContent.length > 0 && (
-          <>
+          <View style={styles.paddedContent}>
             <View style={styles.sectionHeader}>
               <Text style={styles.sectionTitle}>{t('home.premiumContent')}</Text>
               <Text style={styles.viewAll}>{t('home.viewAll')}</Text>
@@ -95,41 +117,64 @@ export const HomeView: React.FC = () => {
                 />
               ))}
             </ScrollView>
-          </>
+          </View>
         )}
 
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>{t('home.popularRooms')}</Text>
-        </View>
+        {featuredMovies.length > 0 && (
+          <MovieSection
+            title="Em Alta"
+            icon="🔥"
+            movies={featuredMovies}
+            onMoviePress={navigateToMovie}
+            cardSize="large"
+          />
+        )}
 
-        {isLoading ? (
-          <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color={EColors.PRIMARY} />
+        {movieSections.map((section) => (
+          <MovieSection
+            key={section.id}
+            title={section.label}
+            icon={section.icon}
+            movies={section.movies}
+            onMoviePress={navigateToMovie}
+            onSeeAllPress={() => {}}
+          />
+        ))}
+
+        <View style={styles.paddedContent}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>{t('home.popularRooms')}</Text>
           </View>
-        ) : rooms.length === 0 ? (
-          <Card style={styles.emptyCard}>
-            <View style={styles.emptyContent}>
-              <Film size={48} color={EColors.PRIMARY} strokeWidth={1.5} />
-              <Text style={styles.emptyTitle}>Nenhuma sala ativa</Text>
-              <Text style={styles.emptySubtitle}>
-                Seja o primeiro a criar uma sala e assistir com amigos!
-              </Text>
-              <Button.Root
-                variant={EButtonVariant.HERO}
-                size={EButtonSize.SM}
-                onPress={navigateToCreateRoom}
-              >
-                <Button.Text>Criar Sala</Button.Text>
-              </Button.Root>
+
+          {isLoading ? (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="large" color={EColors.PRIMARY} />
             </View>
-          </Card>
-        ) : (
-          <View style={styles.roomsList}>
-            {rooms.map((room) => (
-              <LiveRoomCard key={room.id} room={room} onPress={navigateToRoom} />
-            ))}
-          </View>
-        )}
+          ) : rooms.length === 0 ? (
+            <Card style={styles.emptyCard}>
+              <View style={styles.emptyContent}>
+                <Film size={48} color={EColors.PRIMARY} strokeWidth={1.5} />
+                <Text style={styles.emptyTitle}>Nenhuma sala ativa</Text>
+                <Text style={styles.emptySubtitle}>
+                  Seja o primeiro a criar uma sala e assistir com amigos!
+                </Text>
+                <Button.Root
+                  variant={EButtonVariant.HERO}
+                  size={EButtonSize.SM}
+                  onPress={navigateToCreateRoom}
+                >
+                  <Button.Text>Criar Sala</Button.Text>
+                </Button.Root>
+              </View>
+            </Card>
+          ) : (
+            <View style={styles.roomsList}>
+              {rooms.map((room) => (
+                <LiveRoomCard key={room.id} room={room} onPress={navigateToRoom} />
+              ))}
+            </View>
+          )}
+        </View>
       </ScrollView>
     </SafeAreaView>
   );
@@ -168,8 +213,10 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   content: {
-    paddingHorizontal: ESpacing.LG,
     paddingBottom: ESpacing.XXXL,
+  },
+  paddedContent: {
+    paddingHorizontal: ESpacing.LG,
   },
   sectionHeader: {
     flexDirection: 'row',
@@ -239,5 +286,23 @@ const styles = StyleSheet.create({
     fontSize: EFontSize.SM,
     color: EColors.MUTED_FOREGROUND,
     textAlign: 'center',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  modalContent: {
+    backgroundColor: EColors.CARD,
+    borderRadius: 16,
+    padding: ESpacing.XXL,
+    alignItems: 'center',
+    gap: ESpacing.MD,
+  },
+  modalText: {
+    fontSize: EFontSize.BASE,
+    color: EColors.FOREGROUND,
+    fontWeight: EFontWeight.MEDIUM,
   },
 });

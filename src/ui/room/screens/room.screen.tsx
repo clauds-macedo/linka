@@ -8,6 +8,7 @@ import { useAuth } from '../../../core/auth';
 import { useI18n } from '../../../core/i18n';
 import { RoomControls } from '../components/room-controls';
 import { RoomPlayer } from '../components/room-player';
+import { StreamPlayer } from '../components/stream-player';
 import { RoomChat } from '../components/room-chat';
 import { EBorderRadius, EColors, EFontSize, EFontWeight, ESpacing } from '../../tokens';
 
@@ -83,13 +84,24 @@ export const RoomScreen: React.FC<TRoomScreenProps> = ({ roomId }) => {
         </View>
 
         <View style={styles.playerSection}>
-          <RoomPlayer
-            videoId={viewModel.videoId}
-            isPlaying={viewModel.isPlaying}
-            onStateChange={viewModel.handlePlayerStateChange}
-            onProgress={viewModel.handleProgress}
-            playerRef={viewModel.playerRef}
-          />
+          {viewModel.isStreamVideo ? (
+            <StreamPlayer
+              ref={viewModel.streamPlayerRef}
+              videoUrl={viewModel.videoUrl}
+              isPlaying={viewModel.isPlaying}
+              currentTime={viewModel.currentTime}
+              onStateChange={viewModel.handlePlayerStateChange}
+              onProgress={viewModel.handleProgress}
+            />
+          ) : (
+            <RoomPlayer
+              videoId={viewModel.videoId}
+              isPlaying={viewModel.isPlaying}
+              onStateChange={viewModel.handlePlayerStateChange}
+              onProgress={viewModel.handleProgress}
+              playerRef={viewModel.playerRef}
+            />
+          )}
           <RoomControls
             isHost={viewModel.isHost}
             isPlaying={viewModel.isPlaying}

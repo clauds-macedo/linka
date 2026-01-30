@@ -27,6 +27,7 @@ export type TRoomUserPresence = {
 export type TRoomPlaybackState = {
   hostId: string;
   videoId: string;
+  videoUrl?: string;
   isPlaying: boolean;
   currentTime: number;
   lastUpdate: number;
