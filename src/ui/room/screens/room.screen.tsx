@@ -5,7 +5,6 @@ import {
   View,
   TouchableOpacity,
   StatusBar,
-  Dimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -13,7 +12,6 @@ import {
   ChevronLeft,
   Radio,
   Maximize2,
-  Minimize2,
   Globe,
   Lock,
   Users,
@@ -26,11 +24,7 @@ import { RoomPlayer } from '../components/room-player';
 import { StreamPlayer } from '../components/stream-player';
 import { RoomChat } from '../components/room-chat';
 import { ParticipantsList } from '../components/participants-list';
-import { FloatingChat } from '../components/floating-chat';
-import { TChatMessage } from '../../../domain/room/types';
 import { EBorderRadius, EColors, EFontSize, EFontWeight, ESpacing } from '../../tokens';
-
-const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 type TRoomScreenProps = {
   roomId: string;
@@ -55,19 +49,26 @@ export const RoomScreen: React.FC<TRoomScreenProps> = ({ roomId }) => {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [visibility, setVisibility] = useState<TRoomVisibility>('public');
   const [showVisibilityMenu, setShowVisibilityMenu] = useState(false);
-  const [chatMessages, setChatMessages] = useState<TChatMessage[]>([]);
+
+  const handleFullscreenEnter = useCallback(() => {
+    setIsFullscreen(true);
+  }, []);
+
+  const handleFullscreenExit = useCallback(() => {
+    setIsFullscreen(false);
+  }, []);
 
   const toggleFullscreen = useCallback(() => {
-    setIsFullscreen((prev) => !prev);
-  }, []);
+    if (isFullscreen) {
+      viewModel.streamPlayerRef?.current?.exitFullscreen();
+    } else {
+      viewModel.streamPlayerRef?.current?.enterFullscreen();
+    }
+  }, [isFullscreen, viewModel.streamPlayerRef]);
 
   const handleVisibilityChange = useCallback((newVisibility: TRoomVisibility) => {
     setVisibility(newVisibility);
     setShowVisibilityMenu(false);
-  }, []);
-
-  const handleMessagesUpdate = useCallback((messages: TChatMessage[]) => {
-    setChatMessages(messages);
   }, []);
 
   const VisibilityIcon = VISIBILITY_CONFIG[visibility].icon;
@@ -102,56 +103,104 @@ export const RoomScreen: React.FC<TRoomScreenProps> = ({ roomId }) => {
     );
   }
 
-  if (isFullscreen) {
-    return (
-      <View style={styles.fullscreenContainer}>
-        <StatusBar hidden />
-        
-        <View style={styles.fullscreenPlayer}>
-          {viewModel.isStreamVideo ? (
-            <StreamPlayer
-              ref={viewModel.streamPlayerRef}
-              videoUrl={viewModel.videoUrl}
-              isPlaying={viewModel.isPlaying}
-              currentTime={viewModel.currentTime}
-              onStateChange={viewModel.handlePlayerStateChange}
-              onProgress={viewModel.handleProgress}
-            />
-          ) : (
-            <RoomPlayer
-              videoId={viewModel.videoId}
-              isPlaying={viewModel.isPlaying}
-              onStateChange={viewModel.handlePlayerStateChange}
-              onProgress={viewModel.handleProgress}
-              playerRef={viewModel.playerRef}
-            />
-          )}
-        </View>
-
-        <View style={styles.fullscreenOverlay}>
-          <View style={styles.fullscreenHeader}>
-            <TouchableOpacity onPress={() => router.back()} style={styles.fullscreenButton}>
+  return (
+    <View style={styles.mainContainer}>
+      <StatusBar hidden={isFullscreen} />
+      
+      <SafeAreaView style={styles.safeArea} edges={['top']}>
+        <View style={styles.container}>
+          <View style={styles.header}>
+            <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
               <ChevronLeft size={24} color={EColors.FOREGROUND} />
             </TouchableOpacity>
             
-            <View style={styles.fullscreenInfo}>
-              <View style={styles.liveBadge}>
-                <Radio size={10} color="#ef4444" />
-                <Text style={styles.liveText}>AO VIVO</Text>
+            <View style={styles.headerInfo}>
+              <Text style={styles.roomTitle} numberOfLines={1}>
+                Sala
+              </Text>
+              <View style={styles.statusRow}>
+                <View style={styles.liveBadge}>
+                  <Radio size={10} color="#ef4444" />
+                  <Text style={styles.liveText}>AO VIVO</Text>
+                </View>
+                <ParticipantsList
+                  participants={viewModel.participants}
+                  hostId={viewModel.hostId}
+                  currentUserId={userId}
+                />
               </View>
-              <ParticipantsList
-                participants={viewModel.participants}
-                hostId={viewModel.hostId}
-                currentUserId={userId}
-              />
             </View>
 
-            <TouchableOpacity onPress={toggleFullscreen} style={styles.fullscreenButton}>
-              <Minimize2 size={22} color={EColors.FOREGROUND} />
-            </TouchableOpacity>
+            <View style={styles.headerActions}>
+              {viewModel.isHost && (
+                <View style={styles.visibilityContainer}>
+                  <TouchableOpacity
+                    style={[styles.visibilityButton, { borderColor: VISIBILITY_CONFIG[visibility].color }]}
+                    onPress={() => setShowVisibilityMenu(!showVisibilityMenu)}
+                  >
+                    <VisibilityIcon size={14} color={VISIBILITY_CONFIG[visibility].color} />
+                  </TouchableOpacity>
+                  
+                  {showVisibilityMenu && (
+                    <View style={styles.visibilityMenu}>
+                      {(Object.keys(VISIBILITY_CONFIG) as TRoomVisibility[]).map((key) => {
+                        const config = VISIBILITY_CONFIG[key];
+                        const Icon = config.icon;
+                        return (
+                          <TouchableOpacity
+                            key={key}
+                            style={[
+                              styles.visibilityOption,
+                              visibility === key && styles.visibilityOptionActive,
+                            ]}
+                            onPress={() => handleVisibilityChange(key)}
+                          >
+                            <Icon size={16} color={config.color} />
+                            <Text style={styles.visibilityOptionText}>{config.label}</Text>
+                          </TouchableOpacity>
+                        );
+                      })}
+                    </View>
+                  )}
+                </View>
+              )}
+              
+              <View style={[styles.roleBadge, viewModel.isHost ? styles.hostBadge : styles.guestBadge]}>
+                <Text style={styles.roleText}>
+                  {viewModel.isHost ? 'Host' : 'Viewer'}
+                </Text>
+              </View>
+            </View>
           </View>
 
-          <View style={styles.fullscreenControls}>
+          <View style={styles.playerSection}>
+            <View style={styles.playerWrapper}>
+              {viewModel.isStreamVideo ? (
+                <StreamPlayer
+                  ref={viewModel.streamPlayerRef}
+                  videoUrl={viewModel.videoUrl}
+                  isPlaying={viewModel.isPlaying}
+                  currentTime={viewModel.currentTime}
+                  onStateChange={viewModel.handlePlayerStateChange}
+                  onProgress={viewModel.handleProgress}
+                  onFullscreenEnter={handleFullscreenEnter}
+                  onFullscreenExit={handleFullscreenExit}
+                />
+              ) : (
+                <RoomPlayer
+                  videoId={viewModel.videoId}
+                  isPlaying={viewModel.isPlaying}
+                  onStateChange={viewModel.handlePlayerStateChange}
+                  onProgress={viewModel.handleProgress}
+                  playerRef={viewModel.playerRef}
+                />
+              )}
+              {viewModel.isStreamVideo && (
+                <TouchableOpacity style={styles.fullscreenToggle} onPress={toggleFullscreen}>
+                  <Maximize2 size={18} color={EColors.FOREGROUND} />
+                </TouchableOpacity>
+              )}
+            </View>
             <RoomControls
               isHost={viewModel.isHost}
               isPlaying={viewModel.isPlaying}
@@ -161,137 +210,25 @@ export const RoomScreen: React.FC<TRoomScreenProps> = ({ roomId }) => {
               onSeekForward={() => viewModel.seekBy(10)}
             />
           </View>
-        </View>
 
-        <FloatingChat messages={chatMessages} visible={isFullscreen} />
-        
-        <RoomChat
-          roomId={roomId}
-          userId={userId}
-          userName={userName}
-          isFullscreen
-          onMessagesUpdate={handleMessagesUpdate}
-        />
-      </View>
-    );
-  }
-
-  return (
-    <SafeAreaView style={styles.safeArea} edges={['top']}>
-      <StatusBar hidden={false} />
-      <View style={styles.container}>
-        <View style={styles.header}>
-          <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-            <ChevronLeft size={24} color={EColors.FOREGROUND} />
-          </TouchableOpacity>
-          
-          <View style={styles.headerInfo}>
-            <Text style={styles.roomTitle} numberOfLines={1}>
-              Sala
-            </Text>
-            <View style={styles.statusRow}>
-              <View style={styles.liveBadge}>
-                <Radio size={10} color="#ef4444" />
-                <Text style={styles.liveText}>AO VIVO</Text>
-              </View>
-              <ParticipantsList
-                participants={viewModel.participants}
-                hostId={viewModel.hostId}
-                currentUserId={userId}
-              />
-            </View>
-          </View>
-
-          <View style={styles.headerActions}>
-            {viewModel.isHost && (
-              <View style={styles.visibilityContainer}>
-                <TouchableOpacity
-                  style={[styles.visibilityButton, { borderColor: VISIBILITY_CONFIG[visibility].color }]}
-                  onPress={() => setShowVisibilityMenu(!showVisibilityMenu)}
-                >
-                  <VisibilityIcon size={14} color={VISIBILITY_CONFIG[visibility].color} />
-                </TouchableOpacity>
-                
-                {showVisibilityMenu && (
-                  <View style={styles.visibilityMenu}>
-                    {(Object.keys(VISIBILITY_CONFIG) as TRoomVisibility[]).map((key) => {
-                      const config = VISIBILITY_CONFIG[key];
-                      const Icon = config.icon;
-                      return (
-                        <TouchableOpacity
-                          key={key}
-                          style={[
-                            styles.visibilityOption,
-                            visibility === key && styles.visibilityOptionActive,
-                          ]}
-                          onPress={() => handleVisibilityChange(key)}
-                        >
-                          <Icon size={16} color={config.color} />
-                          <Text style={styles.visibilityOptionText}>{config.label}</Text>
-                        </TouchableOpacity>
-                      );
-                    })}
-                  </View>
-                )}
-              </View>
-            )}
-            
-            <View style={[styles.roleBadge, viewModel.isHost ? styles.hostBadge : styles.guestBadge]}>
-              <Text style={styles.roleText}>
-                {viewModel.isHost ? 'Host' : 'Viewer'}
-              </Text>
-            </View>
+          <View style={styles.chatSection}>
+            <RoomChat
+              roomId={roomId}
+              userId={userId}
+              userName={userName}
+            />
           </View>
         </View>
-
-        <View style={styles.playerSection}>
-          <View style={styles.playerWrapper}>
-            {viewModel.isStreamVideo ? (
-              <StreamPlayer
-                ref={viewModel.streamPlayerRef}
-                videoUrl={viewModel.videoUrl}
-                isPlaying={viewModel.isPlaying}
-                currentTime={viewModel.currentTime}
-                onStateChange={viewModel.handlePlayerStateChange}
-                onProgress={viewModel.handleProgress}
-              />
-            ) : (
-              <RoomPlayer
-                videoId={viewModel.videoId}
-                isPlaying={viewModel.isPlaying}
-                onStateChange={viewModel.handlePlayerStateChange}
-                onProgress={viewModel.handleProgress}
-                playerRef={viewModel.playerRef}
-              />
-            )}
-            <TouchableOpacity style={styles.fullscreenToggle} onPress={toggleFullscreen}>
-              <Maximize2 size={18} color={EColors.FOREGROUND} />
-            </TouchableOpacity>
-          </View>
-          <RoomControls
-            isHost={viewModel.isHost}
-            isPlaying={viewModel.isPlaying}
-            onPlay={viewModel.play}
-            onPause={viewModel.pause}
-            onSeekBackward={() => viewModel.seekBy(-10)}
-            onSeekForward={() => viewModel.seekBy(10)}
-          />
-        </View>
-
-        <View style={styles.chatSection}>
-          <RoomChat
-            roomId={roomId}
-            userId={userId}
-            userName={userName}
-            onMessagesUpdate={handleMessagesUpdate}
-          />
-        </View>
-      </View>
-    </SafeAreaView>
+      </SafeAreaView>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
+  mainContainer: {
+    flex: 1,
+    backgroundColor: EColors.BACKGROUND,
+  },
   safeArea: {
     flex: 1,
     backgroundColor: EColors.BACKGROUND,
@@ -440,42 +377,5 @@ const styles = StyleSheet.create({
   chatSection: {
     flex: 1,
     padding: ESpacing.MD,
-  },
-  fullscreenContainer: {
-    flex: 1,
-    backgroundColor: '#000',
-  },
-  fullscreenPlayer: {
-    flex: 1,
-  },
-  fullscreenOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    justifyContent: 'space-between',
-  },
-  fullscreenHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: ESpacing.MD,
-    paddingTop: ESpacing.XL,
-    backgroundColor: 'rgba(0, 0, 0, 0.4)',
-  },
-  fullscreenInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: ESpacing.MD,
-  },
-  fullscreenButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  fullscreenControls: {
-    padding: ESpacing.MD,
-    paddingBottom: ESpacing.XL,
-    backgroundColor: 'rgba(0, 0, 0, 0.4)',
   },
 });

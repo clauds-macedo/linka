@@ -14,16 +14,22 @@ export type TStreamPlayerProps = {
   currentTime?: number;
   onStateChange: (state: string) => void;
   onProgress: (time: number) => void;
+  onFullscreenEnter?: () => void;
+  onFullscreenExit?: () => void;
 };
 
 export type TStreamPlayerRef = {
   seekTo: (time: number) => Promise<void>;
   getCurrentTime: () => Promise<number>;
+  enterFullscreen: () => void;
+  exitFullscreen: () => void;
 };
 
 export const StreamPlayer = React.forwardRef<TStreamPlayerRef, TStreamPlayerProps>(
-  ({ videoUrl, isPlaying, currentTime, onStateChange, onProgress }, ref) => {
+  ({ videoUrl, isPlaying, currentTime, onStateChange, onProgress, onFullscreenEnter, onFullscreenExit }, ref) => {
     const lastReportedTime = useRef(0);
+    const videoViewRef = useRef<VideoView>(null);
+    
     const player = useVideoPlayer(videoUrl, (p) => {
       p.loop = false;
     });
@@ -34,6 +40,12 @@ export const StreamPlayer = React.forwardRef<TStreamPlayerRef, TStreamPlayerProp
       },
       getCurrentTime: async () => {
         return player.currentTime;
+      },
+      enterFullscreen: () => {
+        videoViewRef.current?.enterFullscreen();
+      },
+      exitFullscreen: () => {
+        videoViewRef.current?.exitFullscreen();
       },
     }));
 
@@ -82,13 +94,25 @@ export const StreamPlayer = React.forwardRef<TStreamPlayerRef, TStreamPlayerProp
       return () => clearInterval(interval);
     }, [handleTimeUpdate]);
 
+    const handleFullscreenEnter = useCallback(() => {
+      onFullscreenEnter?.();
+    }, [onFullscreenEnter]);
+
+    const handleFullscreenExit = useCallback(() => {
+      onFullscreenExit?.();
+    }, [onFullscreenExit]);
+
     return (
       <View style={styles.container}>
         <VideoView
+          ref={videoViewRef}
           player={player}
           style={styles.video}
           contentFit="contain"
           nativeControls={false}
+          allowsFullscreen
+          onFullscreenEnter={handleFullscreenEnter}
+          onFullscreenExit={handleFullscreenExit}
         />
       </View>
     );
