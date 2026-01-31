@@ -18,13 +18,6 @@ interface IHeroProps {
 export const Hero: React.FC<IHeroProps> = ({ onCreateRoom }) => {
   return (
     <View style={styles.container}>
-      <View style={styles.badge}>
-        <View style={styles.badgeDot} />
-        <Text style={styles.badgeText}>
-          <Text style={styles.badgeCount}>2.4k</Text> pessoas online agora
-        </Text>
-      </View>
-
       <Text style={styles.title}>
         Assista <Text style={styles.titleHighlight}>junto</Text>
       </Text>
@@ -33,16 +26,9 @@ export const Hero: React.FC<IHeroProps> = ({ onCreateRoom }) => {
         Crie salas, convide amigos e assista vídeos sincronizados em tempo real.
       </Text>
 
-      <View style={styles.searchBar}>
-        <TextInput
-          style={styles.searchInput}
-          placeholder="Cole um link do YouTube, Twitch..."
-          placeholderTextColor={EColors.MUTED_FOREGROUND}
-        />
         <Button.Root variant={EButtonVariant.HERO} size={EButtonSize.DEFAULT} onPress={onCreateRoom}>
           <Button.Text>Criar Sala</Button.Text>
         </Button.Root>
-      </View>
     </View>
   );
 };
