@@ -1,6 +1,8 @@
 import React from 'react';
+import { useLocalSearchParams } from 'expo-router';
 import { SignInView } from '../src/features/auth/view/sign-in.view';
 
 export default function SignInRoute() {
-  return <SignInView />;
+  const { redirect } = useLocalSearchParams<{ redirect?: string }>();
+  return <SignInView redirectTo={redirect} />;
 }

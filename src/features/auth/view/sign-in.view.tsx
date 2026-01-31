@@ -9,12 +9,13 @@ import { useSignInViewModel } from '../view-model/use-sign-in.vm';
 
 type TSignInViewProps = {
   onSignUp?: () => void;
+  redirectTo?: string;
 };
 
-export const SignInView: React.FC<TSignInViewProps> = ({ onSignUp }) => {
+export const SignInView: React.FC<TSignInViewProps> = ({ onSignUp, redirectTo }) => {
   const router = useRouter();
   const { t } = useI18n();
-  const viewModel = useSignInViewModel();
+  const viewModel = useSignInViewModel({ redirectTo });
 
   const handleSignUp = () => {
     if (onSignUp) {

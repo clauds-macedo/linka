@@ -1,6 +1,11 @@
 import { useCallback, useState } from 'react';
+import { useRouter } from 'expo-router';
 import { useAuth } from '../../../core/auth';
 import { useI18n } from '../../../core/i18n';
+
+type TSignInViewModelOptions = {
+  redirectTo?: string;
+};
 
 type TSignInViewModel = {
   email: string;
@@ -12,7 +17,8 @@ type TSignInViewModel = {
   error: string | null;
 };
 
-export const useSignInViewModel = (): TSignInViewModel => {
+export const useSignInViewModel = (options?: TSignInViewModelOptions): TSignInViewModel => {
+  const router = useRouter();
   const { signIn, isLoading } = useAuth();
   const { t } = useI18n();
   const [email, setEmail] = useState('');
@@ -27,10 +33,13 @@ export const useSignInViewModel = (): TSignInViewModel => {
     try {
       setError(null);
       await signIn(email, password);
+      if (options?.redirectTo) {
+        router.replace(options.redirectTo as `/${string}`);
+      }
     } catch {
       setError(t('auth.error'));
     }
-  }, [email, password, signIn, t]);
+  }, [email, password, signIn, t, options?.redirectTo, router]);
 
   return {
     email,

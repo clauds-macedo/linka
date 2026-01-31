@@ -5,31 +5,32 @@ import {
   StyleSheet,
   TouchableOpacity,
   Modal,
-  Share,
   Pressable,
 } from 'react-native';
-import * as Linking from 'expo-linking';
 import * as Clipboard from 'expo-clipboard';
 import QRCode from 'react-native-qrcode-svg';
 import { X, Copy, Share2, Check } from 'lucide-react-native';
+import { useShareRoom } from '../../../core/deep-link';
 import { EBorderRadius, EColors, EFontSize, EFontWeight, ESpacing } from '../../tokens';
 
 type TRoomInviteProps = {
   visible: boolean;
   roomId: string;
+  roomName?: string;
   onClose: () => void;
 };
 
 export const RoomInvite: React.FC<TRoomInviteProps> = ({
   visible,
   roomId,
+  roomName,
   onClose,
 }) => {
   const [copied, setCopied] = React.useState(false);
+  const { shareRoom, getRoomLinks } = useShareRoom();
 
-  const inviteUrl = useMemo(() => {
-    return Linking.createURL(`room/${roomId}`);
-  }, [roomId]);
+  const links = useMemo(() => getRoomLinks(roomId), [getRoomLinks, roomId]);
+  const inviteUrl = links.urls.web;
 
   const handleCopy = useCallback(async () => {
     await Clipboard.setStringAsync(inviteUrl);
@@ -38,14 +39,8 @@ export const RoomInvite: React.FC<TRoomInviteProps> = ({
   }, [inviteUrl]);
 
   const handleShare = useCallback(async () => {
-    try {
-      await Share.share({
-        message: `Venha assistir comigo no Linka! ${inviteUrl}`,
-        url: inviteUrl,
-      });
-    } catch {
-    }
-  }, [inviteUrl]);
+    await shareRoom(roomId, roomName);
+  }, [shareRoom, roomId, roomName]);
 
   return (
     <Modal
