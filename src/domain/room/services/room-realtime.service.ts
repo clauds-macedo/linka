@@ -1,5 +1,5 @@
 import database from '@react-native-firebase/database';
-import { TLiveRoom, TRoomPlaybackState, TRoomRealtimeState, TRoomUserPresence, TRoomVisibility } from '../types';
+import { TLiveRoom, TRoomPlaybackState, TRoomRealtimeState, TRoomSeriesState, TRoomUserPresence, TRoomVisibility } from '../types';
 import { RoomChatService } from './room-chat.service';
 
 export enum ERoomDbKey {
@@ -13,6 +13,7 @@ type TCreateRoomInput = {
   videoId: string;
   videoUrl?: string;
   visibility?: TRoomVisibility;
+  seriesState?: TRoomSeriesState;
 };
 
 type TJoinRoomInput = {
@@ -47,7 +48,7 @@ export class RoomRealtimeService {
     const roomId = input.roomId ?? generateRoomId();
 
     const now = Date.now();
-    const roomState: TRoomRealtimeState & { createdAt: number; videoUrl?: string } = {
+    const roomState: TRoomRealtimeState & { createdAt: number; videoUrl?: string; seriesState?: TRoomSeriesState } = {
       hostId: input.hostId,
       videoId: input.videoId,
       videoUrl: input.videoUrl,
@@ -56,6 +57,7 @@ export class RoomRealtimeService {
       lastUpdate: now,
       createdAt: now,
       visibility: input.visibility ?? 'public',
+      seriesState: input.seriesState,
       users: {
         [input.hostId]: {
           userId: input.hostId,
@@ -129,6 +131,17 @@ export class RoomRealtimeService {
       ...input.state,
       lastUpdate: Date.now(),
     });
+  }
+
+  static async updateSeriesState(roomId: string, seriesState: TRoomSeriesState): Promise<void> {
+    await database().ref(getRoomPath(roomId)).update({
+      seriesState,
+      lastUpdate: Date.now(),
+    });
+  }
+
+  static async updateAutoplay(roomId: string, autoplayEnabled: boolean): Promise<void> {
+    await database().ref(`${getRoomPath(roomId)}/seriesState/autoplayEnabled`).set(autoplayEnabled);
   }
 
   static subscribeToRooms(onChange: (rooms: TLiveRoom[]) => void): () => void {

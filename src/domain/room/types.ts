@@ -1,4 +1,5 @@
 import { ERoomCategory, ERoomStatus } from './enums';
+import { TMovie } from '../movie/types';
 
 export type TRoom = {
   id: string;
@@ -26,6 +27,13 @@ export type TRoomUserPresence = {
 
 export type TRoomVisibility = 'public' | 'friends' | 'private';
 
+export type TRoomSeriesState = {
+  series: TMovie;
+  currentSeason: string;
+  currentEpisode: number;
+  autoplayEnabled: boolean;
+};
+
 export type TRoomPlaybackState = {
   hostId: string;
   videoId: string;
@@ -34,6 +42,7 @@ export type TRoomPlaybackState = {
   currentTime: number;
   lastUpdate: number;
   visibility?: TRoomVisibility;
+  seriesState?: TRoomSeriesState;
 };
 
 export type TRoomRealtimeState = TRoomPlaybackState & {

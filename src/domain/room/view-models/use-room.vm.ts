@@ -1,7 +1,8 @@
 import { MutableRefObject, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { YoutubeIframeRef } from 'react-native-youtube-iframe';
 import { RoomRealtimeService } from '../services/room-realtime.service';
-import { TRoomRealtimeState, TRoomVisibility } from '../types';
+import { TRoomRealtimeState, TRoomSeriesState, TRoomVisibility } from '../types';
+import { TMovie, TSeriesEpisode } from '../../movie/types';
 import { t } from '../../../core/i18n';
 import { TStreamPlayerRef } from '../../../ui/room/components/stream-player';
 import { FriendsService } from '../../friends/services/friends.service';
@@ -33,6 +34,8 @@ type TRoomViewModelState = {
   isLoading: boolean;
   error: string | null;
   visibility: TRoomVisibility;
+  seriesState: TRoomSeriesState | null;
+  autoplayCountdown: number | null;
 };
 
 type TRoomViewModel = TRoomViewModelState & {
@@ -51,6 +54,9 @@ type TRoomViewModel = TRoomViewModelState & {
   setVideoIdInput: (value: string) => void;
   submitVideoId: () => Promise<void>;
   updateVisibility: (visibility: TRoomVisibility) => Promise<void>;
+  changeEpisode: (episode: TSeriesEpisode, season: string) => Promise<void>;
+  toggleAutoplay: () => Promise<void>;
+  cancelAutoplay: () => void;
 };
 
 export const useRoomViewModel = (roomId: string, userId: string, userName?: string): TRoomViewModel => {
@@ -58,12 +64,15 @@ export const useRoomViewModel = (roomId: string, userId: string, userName?: stri
   const streamPlayerRef = useRef<TStreamPlayerRef | null>(null);
   const hasSetVideoId = useRef(false);
   const isSeekingRef = useRef(false);
+  const autoplayTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const changeEpisodeRef = useRef<((episode: TSeriesEpisode, season: string) => Promise<void>) | null>(null);
   const [roomState, setRoomState] = useState<TRoomRealtimeState | null>(null);
   const [localIsPlaying, setLocalIsPlaying] = useState(false);
   const [localTime, setLocalTime] = useState(0);
   const [videoIdInput, setVideoIdInput] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [autoplayCountdown, setAutoplayCountdown] = useState<number | null>(null);
 
   const isHost = useMemo(() => roomState?.hostId === userId, [roomState, userId]);
 
@@ -78,6 +87,38 @@ export const useRoomViewModel = (roomId: string, userId: string, userName?: stri
     const users = roomState?.users ?? {};
     return Object.keys(users);
   }, [roomState]);
+
+  const seriesState = useMemo(() => roomState?.seriesState ?? null, [roomState]);
+
+  const getNextEpisode = useCallback((): { episode: TSeriesEpisode; season: string } | null => {
+    if (!seriesState?.series?.episodes) return null;
+    
+    const seasons = Object.keys(seriesState.series.episodes).sort((a, b) => Number(a) - Number(b));
+    let foundCurrent = false;
+    
+    for (const season of seasons) {
+      const episodes = seriesState.series.episodes[season] || [];
+      for (const ep of episodes) {
+        if (season === seriesState.currentSeason && ep.episode === seriesState.currentEpisode) {
+          foundCurrent = true;
+          continue;
+        }
+        if (foundCurrent) {
+          return { episode: ep, season };
+        }
+      }
+    }
+    
+    return null;
+  }, [seriesState]);
+
+  const cancelAutoplay = useCallback(() => {
+    if (autoplayTimerRef.current) {
+      clearInterval(autoplayTimerRef.current);
+      autoplayTimerRef.current = null;
+    }
+    setAutoplayCountdown(null);
+  }, []);
 
   const joinRoom = useCallback(async () => {
     try {
@@ -196,10 +237,78 @@ export const useRoomViewModel = (roomId: string, userId: string, userName?: stri
     [localTime, seekTo]
   );
 
+  const changeEpisode = useCallback(async (episode: TSeriesEpisode, season: string) => {
+    if (!isHost || !seriesState?.series) return;
+    
+    if (autoplayTimerRef.current) {
+      clearInterval(autoplayTimerRef.current);
+      autoplayTimerRef.current = null;
+    }
+    setAutoplayCountdown(null);
+    
+    const newSeriesState: TRoomSeriesState = {
+      ...seriesState,
+      currentSeason: season,
+      currentEpisode: episode.episode,
+    };
+    
+    await RoomRealtimeService.updateSeriesState(roomId, newSeriesState);
+    await RoomRealtimeService.updatePlayback({
+      roomId,
+      state: {
+        videoUrl: episode.url,
+        videoId: episode.id,
+        currentTime: 0,
+        isPlaying: true,
+      },
+    });
+    
+    if (isStreamVideo) {
+      streamPlayerRef.current?.seekTo(0);
+    }
+  }, [isHost, roomId, seriesState, isStreamVideo]);
+
+  useEffect(() => {
+    changeEpisodeRef.current = changeEpisode;
+  }, [changeEpisode]);
+
+  const handleVideoEnded = useCallback(() => {
+    if (!isHost || !seriesState?.autoplayEnabled) return;
+    
+    const nextEpisode = getNextEpisode();
+    if (!nextEpisode) return;
+    
+    if (autoplayTimerRef.current) {
+      clearInterval(autoplayTimerRef.current);
+      autoplayTimerRef.current = null;
+    }
+    setAutoplayCountdown(10);
+    
+    autoplayTimerRef.current = setInterval(() => {
+      setAutoplayCountdown((prev) => {
+        if (prev === null || prev <= 1) {
+          if (autoplayTimerRef.current) {
+            clearInterval(autoplayTimerRef.current);
+            autoplayTimerRef.current = null;
+          }
+          changeEpisodeRef.current?.(nextEpisode.episode, nextEpisode.season);
+          return null;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+  }, [isHost, seriesState?.autoplayEnabled, getNextEpisode]);
+
   const handlePlayerStateChange = useCallback(
     (state: string) => {
       const isPlayingNow = state === EPlayerState.PLAYING;
       setLocalIsPlaying(isPlayingNow);
+      
+      if (state === EPlayerState.ENDED && isHost) {
+        handleVideoEnded();
+        return;
+      }
+      
       if (!isHost || isSeekingRef.current) return;
       if (state === EPlayerState.PLAYING) {
         updatePlayback({ isPlaying: true, currentTime: localTime });
@@ -208,7 +317,7 @@ export const useRoomViewModel = (roomId: string, userId: string, userName?: stri
         updatePlayback({ isPlaying: false, currentTime: localTime });
       }
     },
-    [isHost, updatePlayback, localTime]
+    [isHost, updatePlayback, localTime, handleVideoEnded]
   );
 
   const handleProgress = useCallback((time: number) => {
@@ -230,6 +339,20 @@ export const useRoomViewModel = (roomId: string, userId: string, userName?: stri
     await RoomRealtimeService.updateVisibility(roomId, visibility);
   }, [isHost, roomId]);
 
+  const toggleAutoplay = useCallback(async () => {
+    if (!isHost || !seriesState) return;
+    const newAutoplay = !seriesState.autoplayEnabled;
+    await RoomRealtimeService.updateAutoplay(roomId, newAutoplay);
+  }, [isHost, roomId, seriesState]);
+
+  useEffect(() => {
+    return () => {
+      if (autoplayTimerRef.current) {
+        clearInterval(autoplayTimerRef.current);
+      }
+    };
+  }, []);
+
   return {
     roomId,
     userId,
@@ -244,6 +367,8 @@ export const useRoomViewModel = (roomId: string, userId: string, userName?: stri
     isLoading,
     error,
     visibility: roomState?.visibility ?? 'public',
+    seriesState,
+    autoplayCountdown,
     playerRef,
     streamPlayerRef,
     isStreamVideo,
@@ -259,5 +384,8 @@ export const useRoomViewModel = (roomId: string, userId: string, userName?: stri
     setVideoIdInput,
     submitVideoId,
     updateVisibility,
+    changeEpisode,
+    toggleAutoplay,
+    cancelAutoplay,
   };
 };

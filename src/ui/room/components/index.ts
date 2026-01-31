@@ -7,3 +7,6 @@ export { RoomVideoInput } from './room-video-input';
 export { SourceSelector } from './source-selector';
 export { YouTubeBrowser } from './youtube-browser';
 export { RoomChat } from './room-chat';
+export { UpNextEpisodes } from './up-next-episodes';
+export { QuickReactions } from './quick-reactions';
+export { FloatingReactions } from './floating-reactions';

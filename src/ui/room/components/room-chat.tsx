@@ -10,11 +10,22 @@ import {
   Platform,
   Keyboard,
   TouchableWithoutFeedback,
+  Dimensions,
 } from 'react-native';
 import { MessageCircle, Send, Radio, X, ChevronUp } from 'lucide-react-native';
 import { TChatMessage } from '../../../domain/room/types';
 import { RoomChatService } from '../../../domain/room/services/room-chat.service';
+import { ReactionsFab } from './reactions-fab';
+import { FloatingReactions } from './floating-reactions';
 import { EBorderRadius, EColors, EFontSize, EFontWeight, ESpacing } from '../../tokens';
+
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
+
+type TFloatingReaction = {
+  id: string;
+  emoji: string;
+  x: number;
+};
 
 type TRoomChatProps = {
   roomId: string;
@@ -74,6 +85,7 @@ export const RoomChat: React.FC<TRoomChatProps> = ({
   const [isSending, setIsSending] = useState(false);
   const [isExpanded, setIsExpanded] = useState(!isFullscreen);
   const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
+  const [floatingReactions, setFloatingReactions] = useState<TFloatingReaction[]>([]);
   const flatListRef = useRef<FlatList>(null);
   const inputRef = useRef<TextInput>(null);
 
@@ -121,6 +133,26 @@ export const RoomChat: React.FC<TRoomChatProps> = ({
     }
   }, [inputText, isSending, roomId, userId, userName]);
 
+  const handleReaction = useCallback(async (emoji: string) => {
+    const reactionId = `${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+    const x = Math.random() * (SCREEN_WIDTH - 100) + 20;
+    
+    setFloatingReactions((prev) => [...prev, { id: reactionId, emoji, x }]);
+
+    try {
+      await RoomChatService.sendMessage({
+        roomId,
+        userId,
+        userName,
+        text: emoji,
+      });
+    } catch {}
+  }, [roomId, userId, userName]);
+
+  const handleReactionComplete = useCallback((id: string) => {
+    setFloatingReactions((prev) => prev.filter((r) => r.id !== id));
+  }, []);
+
   const renderMessage = useCallback(
     ({ item }: { item: TChatMessage }) => (
       <ChatMessageItem message={item} isOwn={item.userId === userId} />
@@ -157,6 +189,12 @@ export const RoomChat: React.FC<TRoomChatProps> = ({
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       keyboardVerticalOffset={Platform.OS === 'ios' ? 20 : 0}
     >
+            <ReactionsFab onReact={handleReaction} disabled={isSending} />
+
+      <FloatingReactions
+        reactions={floatingReactions}
+        onReactionComplete={handleReactionComplete}
+      />
       <TouchableWithoutFeedback onPress={dismissKeyboard}>
         <View style={styles.innerContainer}>
           <View style={styles.header}>
@@ -220,6 +258,8 @@ export const RoomChat: React.FC<TRoomChatProps> = ({
           </View>
         </View>
       </TouchableWithoutFeedback>
+
+
     </KeyboardAvoidingView>
   );
 };

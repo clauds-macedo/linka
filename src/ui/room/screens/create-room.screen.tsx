@@ -5,7 +5,8 @@ import { useRouter } from 'expo-router';
 import { useAuth } from '../../../core/auth';
 import { useI18n } from '../../../core/i18n';
 import { EVideoSource } from '../../../domain/room/enums';
-import { TMovie } from '../../../domain/movie';
+import { TMovie, TSeriesEpisode } from '../../../domain/movie';
+import { TRoomSeriesState } from '../../../domain/room/types';
 import { RoomRealtimeService } from '../../../domain/room/services/room-realtime.service';
 import { RoomRoot } from '../components/room-root';
 import { SourceSelector } from '../components/source-selector';
@@ -56,7 +57,7 @@ export const CreateRoomScreen: React.FC<TCreateRoomScreenProps> = ({
   const [error, setError] = useState<string | null>(null);
 
   const createRoomWithContent = useCallback(
-    async (contentId: string, contentUrl?: string) => {
+    async (contentId: string, contentUrl?: string, seriesState?: TRoomSeriesState) => {
       try {
         setScreenState('creating');
         setError(null);
@@ -65,6 +66,7 @@ export const CreateRoomScreen: React.FC<TCreateRoomScreenProps> = ({
           hostId: userId,
           videoId: contentId,
           videoUrl: contentUrl,
+          seriesState,
         });
 
         if (!roomId) {
@@ -107,6 +109,22 @@ export const CreateRoomScreen: React.FC<TCreateRoomScreenProps> = ({
 
   const handleMovieSelect = useCallback(
     async (movie: TMovie) => {
+      if (movie.type === 'series' && movie.episodes) {
+        const firstSeason = Object.keys(movie.episodes).sort((a, b) => Number(a) - Number(b))[0];
+        const firstEpisode = movie.episodes[firstSeason]?.[0];
+        
+        if (firstEpisode) {
+          const seriesState: TRoomSeriesState = {
+            series: movie,
+            currentSeason: firstSeason,
+            currentEpisode: firstEpisode.episode,
+            autoplayEnabled: true,
+          };
+          await createRoomWithContent(firstEpisode.id, firstEpisode.url, seriesState);
+          return;
+        }
+      }
+      
       await createRoomWithContent(movie.id, movie.url);
     },
     [createRoomWithContent]

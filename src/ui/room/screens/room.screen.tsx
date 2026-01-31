@@ -21,6 +21,7 @@ import {
 } from 'lucide-react-native';
 import { useRoomViewModel } from '../../../domain/room/view-models/use-room.vm';
 import { TRoomVisibility } from '../../../domain/room/types';
+import { TSeriesEpisode } from '../../../domain/movie/types';
 import { useAuth } from '../../../core/auth';
 import { useI18n } from '../../../core/i18n';
 import { RoomControls } from '../components/room-controls';
@@ -30,6 +31,7 @@ import { RoomChat } from '../components/room-chat';
 import { ParticipantsList } from '../components/participants-list';
 import { FullscreenControls } from '../components/fullscreen-controls';
 import { RoomInvite } from '../components/room-invite';
+import { UpNextEpisodes } from '../components/up-next-episodes';
 import { EBorderRadius, EColors, EFontSize, EFontWeight, ESpacing } from '../../tokens';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
@@ -256,6 +258,20 @@ export const RoomScreen: React.FC<TRoomScreenProps> = ({ roomId }) => {
               onSeekBackward={() => handleSeekBy(-10)}
               onSeekForward={() => handleSeekBy(10)}
             />
+            
+            {viewModel.seriesState && (
+              <UpNextEpisodes
+                series={viewModel.seriesState.series}
+                currentSeason={viewModel.seriesState.currentSeason}
+                currentEpisode={viewModel.seriesState.currentEpisode}
+                autoplayEnabled={viewModel.seriesState.autoplayEnabled}
+                autoplayCountdown={viewModel.autoplayCountdown}
+                onEpisodeSelect={viewModel.changeEpisode}
+                onAutoplayToggle={viewModel.toggleAutoplay}
+                onCancelAutoplay={viewModel.cancelAutoplay}
+                isHost={viewModel.isHost}
+              />
+            )}
           </View>
 
           <View style={styles.chatSection}>
