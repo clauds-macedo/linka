@@ -15,7 +15,7 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.linka.app",
+      "bundleIdentifier": "com.br.linka.app",
       "googleServicesFile": "./GoogleService-Info.plist",
       "associatedDomains": ["applinks:linka.app"]
     },
@@ -26,7 +26,7 @@
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
-      "package": "com.linka.app",
+      "package": "com.br.linka.app",
       "googleServicesFile": "./google-services.json",
       "intentFilters": [
         {
